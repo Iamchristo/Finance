@@ -1,0 +1,60 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+require dirname(__DIR__) . '/bootstrap.php';
+
+use App\Core\Database;
+
+$pdo = Database::connection();
+
+$pdo->exec(<<<SQL
+    CREATE TABLE IF NOT EXISTS migrations (
+        id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        filename VARCHAR(255) NOT NULL UNIQUE,
+        applied_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB
+    SQL);
+
+$applied = $pdo->query('SELECT filename FROM migrations')->fetchAll(PDO::FETCH_COLUMN);
+
+$migrationsDir = base_path('database/migrations');
+$files = glob($migrationsDir . '/*.sql');
+sort($files);
+
+$ranAny = false;
+
+foreach ($files as $file) {
+    $filename = basename($file);
+
+    if (in_array($filename, $applied, true)) {
+        continue;
+    }
+
+    echo "Applying {$filename}...\n";
+    $sql = file_get_contents($file);
+
+    // MySQL DDL statements implicitly commit, so migrations are not wrapped in a
+    // PHP-level transaction (would desync PDO's transaction bookkeeping). Each
+    // .sql file should be idempotent-safe to fix-and-rerun if a statement fails.
+    try {
+        foreach (array_filter(array_map('trim', explode(";\n", $sql))) as $statement) {
+            if ($statement === '') {
+                continue;
+            }
+            $pdo->exec($statement);
+        }
+
+        $stmt = $pdo->prepare('INSERT INTO migrations (filename) VALUES (:filename)');
+        $stmt->execute(['filename' => $filename]);
+
+        $ranAny = true;
+        echo "  OK\n";
+    } catch (Throwable $e) {
+        fwrite(STDERR, "  FAILED: {$e->getMessage()}\n");
+        exit(1);
+    }
+}
+
+echo $ranAny ? "Migrations complete.\n" : "Nothing to migrate.\n";

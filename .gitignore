@@ -1,0 +1,14 @@
+/vendor/
+/node_modules/
+/public/build/
+/storage/logs/*.log
+/storage/cache/*
+/storage/sessions/*
+!/storage/logs/.gitkeep
+!/storage/cache/.gitkeep
+!/storage/sessions/.gitkeep
+/public/uploads/*
+!/public/uploads/.gitkeep
+.env
+.DS_Store
+*.swp
