@@ -26,6 +26,8 @@
         <?= $this->section('body') ?>
     </main>
 
+    <?= $this->insert('partials/footer') ?>
+
     <script type="module" src="<?= e(vite_asset('resources/js/app.js')) ?>"></script>
 </body>
 </html>

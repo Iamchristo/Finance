@@ -97,8 +97,8 @@ final class Router
         $routeInfo = $dispatcher->dispatch($request->method(), $request->path());
 
         return match ($routeInfo[0]) {
-            Dispatcher::NOT_FOUND => Response::html('404 Not Found', 404),
-            Dispatcher::METHOD_NOT_ALLOWED => Response::html('405 Method Not Allowed', 405),
+            Dispatcher::NOT_FOUND => Response::html(View::render('errors/404'), 404),
+            Dispatcher::METHOD_NOT_ALLOWED => Response::html(View::render('errors/404'), 405),
             Dispatcher::FOUND => $this->handleFound($routeInfo, $request, $container),
         };
     }

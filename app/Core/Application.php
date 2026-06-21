@@ -34,7 +34,14 @@ final class Application
     {
         Session::start();
         $request = Request::capture();
-        $response = $this->router->dispatch($request, $this->container);
+
+        try {
+            $response = $this->router->dispatch($request, $this->container);
+        } catch (\Throwable $e) {
+            Logger::exception($e);
+            $response = Response::html(View::render('errors/500'), 500);
+        }
+
         $response->send();
     }
 }
