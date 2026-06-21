@@ -1,0 +1,23 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+require dirname(__DIR__) . '/bootstrap.php';
+
+use App\Console\Commands\EvaluatePositionsCommand;
+use App\Console\Commands\RunInvestmentAccrualCommand;
+use App\Console\Commands\RunRealEstateAccrualCommand;
+use App\Console\Commands\TickPriceSimulatorCommand;
+use Symfony\Component\Console\Application;
+
+$application = new Application('Finance Platform Console', '1.0.0');
+
+$application->addCommands([
+    new RunInvestmentAccrualCommand(),
+    new RunRealEstateAccrualCommand(),
+    new TickPriceSimulatorCommand(),
+    new EvaluatePositionsCommand(),
+]);
+
+$application->run();
