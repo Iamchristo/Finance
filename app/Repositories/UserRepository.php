@@ -112,6 +112,51 @@ final class UserRepository
         return array_map(User::fromRow(...), $stmt->fetchAll());
     }
 
+    public function countAll(?string $search = null): int
+    {
+        $sql = 'SELECT COUNT(*) FROM users u WHERE u.deleted_at IS NULL';
+        $params = [];
+
+        if ($search !== null && $search !== '') {
+            $sql .= ' AND (u.email LIKE :search OR u.first_name LIKE :search OR u.last_name LIKE :search)';
+            $params['search'] = "%{$search}%";
+        }
+
+        $stmt = Database::connection()->prepare($sql);
+        $stmt->execute($params);
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    public function allRoles(): array
+    {
+        $stmt = Database::connection()->query('SELECT * FROM roles ORDER BY id');
+
+        return $stmt->fetchAll();
+    }
+
+    public function updateRole(int $userId, int $roleId): void
+    {
+        $stmt = Database::connection()->prepare('UPDATE users SET role_id = :role_id WHERE id = :id');
+        $stmt->execute(['role_id' => $roleId, 'id' => $userId]);
+    }
+
+    /** @return array<string, int> counts of users grouped by status */
+    public function countsByStatus(): array
+    {
+        $stmt = Database::connection()->query(
+            "SELECT status, COUNT(*) AS total FROM users WHERE deleted_at IS NULL GROUP BY status"
+        );
+
+        $counts = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $counts[$row['status']] = (int) $row['total'];
+        }
+
+        return $counts;
+    }
+
     private function generateUniqueReferralCode(): string
     {
         do {

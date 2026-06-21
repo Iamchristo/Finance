@@ -129,4 +129,90 @@ final class InvestmentRepository
 
         return $stmt->fetchAll();
     }
+
+    /** @return array<int, array<string, mixed>> */
+    public function allPlans(): array
+    {
+        $stmt = Database::connection()->query('SELECT * FROM investment_plans ORDER BY sort_order, min_amount');
+
+        return $stmt->fetchAll();
+    }
+
+    public function createPlan(
+        string $name,
+        string $slug,
+        string $description,
+        string $tier,
+        string $minAmount,
+        ?string $maxAmount,
+        string $roiPercent,
+        string $roiPeriod,
+        int $durationDays,
+        bool $compoundingAllowed,
+        int $sortOrder,
+    ): int {
+        $pdo = Database::connection();
+        $stmt = $pdo->prepare(
+            'INSERT INTO investment_plans
+                (name, slug, description, tier, min_amount, max_amount, roi_percent, roi_period, duration_days, compounding_allowed, sort_order)
+             VALUES (:name, :slug, :description, :tier, :min_amount, :max_amount, :roi_percent, :roi_period, :duration_days, :compounding_allowed, :sort_order)'
+        );
+        $stmt->execute([
+            'name' => $name,
+            'slug' => $slug,
+            'description' => $description,
+            'tier' => $tier,
+            'min_amount' => $minAmount,
+            'max_amount' => $maxAmount,
+            'roi_percent' => $roiPercent,
+            'roi_period' => $roiPeriod,
+            'duration_days' => $durationDays,
+            'compounding_allowed' => $compoundingAllowed ? 1 : 0,
+            'sort_order' => $sortOrder,
+        ]);
+
+        return (int) $pdo->lastInsertId();
+    }
+
+    public function updatePlan(
+        int $id,
+        string $name,
+        string $description,
+        string $tier,
+        string $minAmount,
+        ?string $maxAmount,
+        string $roiPercent,
+        string $roiPeriod,
+        int $durationDays,
+        bool $compoundingAllowed,
+        int $sortOrder,
+    ): void {
+        $stmt = Database::connection()->prepare(
+            'UPDATE investment_plans SET
+                name = :name, description = :description, tier = :tier,
+                min_amount = :min_amount, max_amount = :max_amount,
+                roi_percent = :roi_percent, roi_period = :roi_period, duration_days = :duration_days,
+                compounding_allowed = :compounding_allowed, sort_order = :sort_order
+             WHERE id = :id'
+        );
+        $stmt->execute([
+            'name' => $name,
+            'description' => $description,
+            'tier' => $tier,
+            'min_amount' => $minAmount,
+            'max_amount' => $maxAmount,
+            'roi_percent' => $roiPercent,
+            'roi_period' => $roiPeriod,
+            'duration_days' => $durationDays,
+            'compounding_allowed' => $compoundingAllowed ? 1 : 0,
+            'sort_order' => $sortOrder,
+            'id' => $id,
+        ]);
+    }
+
+    public function togglePlanActive(int $id): void
+    {
+        $stmt = Database::connection()->prepare('UPDATE investment_plans SET is_active = NOT is_active WHERE id = :id');
+        $stmt->execute(['id' => $id]);
+    }
 }

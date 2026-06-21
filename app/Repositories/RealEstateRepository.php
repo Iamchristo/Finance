@@ -237,4 +237,129 @@ final class RealEstateRepository
         );
         $stmt->execute(['listing_id' => $listingId, 'except_id' => $exceptOfferId]);
     }
+
+    /** @return array<int, array<string, mixed>> */
+    public function allProperties(): array
+    {
+        $stmt = Database::connection()->query('SELECT * FROM re_properties ORDER BY created_at DESC');
+
+        return $stmt->fetchAll();
+    }
+
+    public function createProperty(
+        string $title,
+        string $slug,
+        string $description,
+        ?string $address,
+        ?string $city,
+        ?string $country,
+        string $propertyType,
+        string $totalValue,
+        int $totalShares,
+        string $sharePrice,
+        string $expectedAnnualRoiPercent,
+        string $mode,
+        ?string $coverImagePath,
+    ): int {
+        $pdo = Database::connection();
+        $stmt = $pdo->prepare(
+            'INSERT INTO re_properties
+                (title, slug, description, address, city, country, property_type, total_value,
+                 total_shares, share_price, expected_annual_roi_percent, mode, cover_image_path)
+             VALUES (:title, :slug, :description, :address, :city, :country, :property_type, :total_value,
+                     :total_shares, :share_price, :roi_percent, :mode, :cover_image_path)'
+        );
+        $stmt->execute([
+            'title' => $title,
+            'slug' => $slug,
+            'description' => $description,
+            'address' => $address,
+            'city' => $city,
+            'country' => $country,
+            'property_type' => $propertyType,
+            'total_value' => $totalValue,
+            'total_shares' => $totalShares,
+            'share_price' => $sharePrice,
+            'roi_percent' => $expectedAnnualRoiPercent,
+            'mode' => $mode,
+            'cover_image_path' => $coverImagePath,
+        ]);
+
+        return (int) $pdo->lastInsertId();
+    }
+
+    public function updateProperty(
+        int $id,
+        string $title,
+        string $description,
+        ?string $address,
+        ?string $city,
+        ?string $country,
+        string $propertyType,
+        string $totalValue,
+        int $totalShares,
+        string $sharePrice,
+        string $expectedAnnualRoiPercent,
+        ?string $coverImagePath,
+    ): void {
+        $stmt = Database::connection()->prepare(
+            'UPDATE re_properties SET
+                title = :title, description = :description, address = :address, city = :city, country = :country,
+                property_type = :property_type, total_value = :total_value, total_shares = :total_shares,
+                share_price = :share_price, expected_annual_roi_percent = :roi_percent, cover_image_path = :cover_image_path
+             WHERE id = :id'
+        );
+        $stmt->execute([
+            'title' => $title,
+            'description' => $description,
+            'address' => $address,
+            'city' => $city,
+            'country' => $country,
+            'property_type' => $propertyType,
+            'total_value' => $totalValue,
+            'total_shares' => $totalShares,
+            'share_price' => $sharePrice,
+            'roi_percent' => $expectedAnnualRoiPercent,
+            'cover_image_path' => $coverImagePath,
+            'id' => $id,
+        ]);
+    }
+
+    public function togglePropertyActive(int $id): void
+    {
+        $stmt = Database::connection()->prepare('UPDATE re_properties SET is_active = NOT is_active WHERE id = :id');
+        $stmt->execute(['id' => $id]);
+    }
+
+    /** @return array<int, array<string, mixed>> listings awaiting admin moderation */
+    public function pendingListings(): array
+    {
+        $stmt = Database::connection()->query(
+            "SELECT l.*, CONCAT(u.first_name, ' ', u.last_name) AS seller_name FROM re_listings l
+             JOIN users u ON u.id = l.seller_user_id
+             WHERE l.status = 'pending_review' ORDER BY l.created_at"
+        );
+
+        return $stmt->fetchAll();
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    public function allListings(): array
+    {
+        $stmt = Database::connection()->query(
+            "SELECT l.*, CONCAT(u.first_name, ' ', u.last_name) AS seller_name FROM re_listings l
+             JOIN users u ON u.id = l.seller_user_id
+             ORDER BY l.created_at DESC"
+        );
+
+        return $stmt->fetchAll();
+    }
+
+    public function reviewListing(int $id, string $status, int $reviewerUserId): void
+    {
+        $stmt = Database::connection()->prepare(
+            'UPDATE re_listings SET status = :status, reviewed_by_user_id = :reviewer WHERE id = :id'
+        );
+        $stmt->execute(['status' => $status, 'reviewer' => $reviewerUserId, 'id' => $id]);
+    }
 }

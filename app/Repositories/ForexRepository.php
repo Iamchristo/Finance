@@ -307,4 +307,155 @@ final class ForexRepository
 
         return $stmt->fetchAll();
     }
+
+    /** @return array<int, array<string, mixed>> */
+    public function instrumentClasses(): array
+    {
+        $stmt = Database::connection()->query('SELECT * FROM fx_instrument_classes ORDER BY id');
+
+        return $stmt->fetchAll();
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    public function allInstruments(): array
+    {
+        $stmt = Database::connection()->query(
+            'SELECT i.*, c.name AS class_name, c.label AS class_label
+             FROM fx_instruments i JOIN fx_instrument_classes c ON c.id = i.class_id
+             ORDER BY c.id, i.sort_order'
+        );
+
+        return $stmt->fetchAll();
+    }
+
+    public function createInstrument(
+        int $classId,
+        string $symbol,
+        string $displayName,
+        string $baseCurrency,
+        string $quoteCurrency,
+        string $currentPrice,
+        int $leverageMax,
+        string $minTradeSize,
+        int $pricePrecision,
+        int $sortOrder,
+    ): int {
+        $pdo = Database::connection();
+        $stmt = $pdo->prepare(
+            'INSERT INTO fx_instruments
+                (class_id, symbol, display_name, base_currency, quote_currency, current_price, previous_close,
+                 leverage_max, min_trade_size, price_precision, sort_order)
+             VALUES (:class_id, :symbol, :display_name, :base_currency, :quote_currency, :current_price, :previous_close,
+                     :leverage_max, :min_trade_size, :price_precision, :sort_order)'
+        );
+        $stmt->execute([
+            'class_id' => $classId,
+            'symbol' => strtoupper($symbol),
+            'display_name' => $displayName,
+            'base_currency' => strtoupper($baseCurrency),
+            'quote_currency' => strtoupper($quoteCurrency),
+            'current_price' => $currentPrice,
+            'previous_close' => $currentPrice,
+            'leverage_max' => $leverageMax,
+            'min_trade_size' => $minTradeSize,
+            'price_precision' => $pricePrecision,
+            'sort_order' => $sortOrder,
+        ]);
+
+        return (int) $pdo->lastInsertId();
+    }
+
+    public function updateInstrument(
+        int $id,
+        string $displayName,
+        string $baseCurrency,
+        string $quoteCurrency,
+        int $leverageMax,
+        string $minTradeSize,
+        int $pricePrecision,
+        int $sortOrder,
+    ): void {
+        $stmt = Database::connection()->prepare(
+            'UPDATE fx_instruments SET
+                display_name = :display_name, base_currency = :base_currency, quote_currency = :quote_currency,
+                leverage_max = :leverage_max, min_trade_size = :min_trade_size,
+                price_precision = :price_precision, sort_order = :sort_order
+             WHERE id = :id'
+        );
+        $stmt->execute([
+            'display_name' => $displayName,
+            'base_currency' => strtoupper($baseCurrency),
+            'quote_currency' => strtoupper($quoteCurrency),
+            'leverage_max' => $leverageMax,
+            'min_trade_size' => $minTradeSize,
+            'price_precision' => $pricePrecision,
+            'sort_order' => $sortOrder,
+            'id' => $id,
+        ]);
+    }
+
+    public function toggleInstrumentActive(int $id): void
+    {
+        $stmt = Database::connection()->prepare('UPDATE fx_instruments SET is_active = NOT is_active WHERE id = :id');
+        $stmt->execute(['id' => $id]);
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    public function allStrategies(): array
+    {
+        $stmt = Database::connection()->query('SELECT * FROM fx_strategies ORDER BY id');
+
+        return $stmt->fetchAll();
+    }
+
+    public function createStrategy(
+        string $name,
+        string $slug,
+        string $description,
+        string $riskLevel,
+        string $simulatedMonthlyReturnPercent,
+    ): int {
+        $pdo = Database::connection();
+        $stmt = $pdo->prepare(
+            'INSERT INTO fx_strategies (name, slug, description, risk_level, simulated_monthly_return_percent)
+             VALUES (:name, :slug, :description, :risk_level, :return_percent)'
+        );
+        $stmt->execute([
+            'name' => $name,
+            'slug' => $slug,
+            'description' => $description,
+            'risk_level' => $riskLevel,
+            'return_percent' => $simulatedMonthlyReturnPercent,
+        ]);
+
+        return (int) $pdo->lastInsertId();
+    }
+
+    public function updateStrategy(
+        int $id,
+        string $name,
+        string $description,
+        string $riskLevel,
+        string $simulatedMonthlyReturnPercent,
+    ): void {
+        $stmt = Database::connection()->prepare(
+            'UPDATE fx_strategies SET
+                name = :name, description = :description, risk_level = :risk_level,
+                simulated_monthly_return_percent = :return_percent
+             WHERE id = :id'
+        );
+        $stmt->execute([
+            'name' => $name,
+            'description' => $description,
+            'risk_level' => $riskLevel,
+            'return_percent' => $simulatedMonthlyReturnPercent,
+            'id' => $id,
+        ]);
+    }
+
+    public function toggleStrategyActive(int $id): void
+    {
+        $stmt = Database::connection()->prepare('UPDATE fx_strategies SET is_active = NOT is_active WHERE id = :id');
+        $stmt->execute(['id' => $id]);
+    }
 }
