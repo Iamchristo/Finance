@@ -27,7 +27,7 @@ final class RealEstateAccrualService
             $dailyRate = bcdiv($investment['expected_annual_roi_percent'], '365', 10);
             $amount = bcmul($investment['amount_invested'], bcdiv($dailyRate, '100', 10), 8);
 
-            if (bccomp($amount, '0') <= 0) {
+            if (bccomp($amount, '0', 8) <= 0) {
                 continue;
             }
 

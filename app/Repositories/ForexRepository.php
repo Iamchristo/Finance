@@ -193,9 +193,17 @@ final class ForexRepository
         if ($existing === false) {
             $insert = $pdo->prepare(
                 'INSERT INTO fx_price_history (instrument_id, timeframe, open, high, low, close, bucket_start_at)
-                 VALUES (:id, :timeframe, :price, :price, :price, :price, :bucket)'
+                 VALUES (:id, :timeframe, :open, :high, :low, :close, :bucket)'
             );
-            $insert->execute(['id' => $instrumentId, 'timeframe' => $timeframe, 'price' => $price, 'bucket' => $bucketStart]);
+            $insert->execute([
+                'id' => $instrumentId,
+                'timeframe' => $timeframe,
+                'open' => $price,
+                'high' => $price,
+                'low' => $price,
+                'close' => $price,
+                'bucket' => $bucketStart,
+            ]);
 
             return;
         }

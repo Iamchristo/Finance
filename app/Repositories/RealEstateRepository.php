@@ -52,10 +52,10 @@ final class RealEstateRepository
         $stmt = $pdo->prepare(
             "UPDATE re_properties
              SET shares_sold = shares_sold + :shares,
-                 funding_status = IF(shares_sold + :shares >= total_shares, 'funded', funding_status)
+                 funding_status = IF(shares_sold + :shares_check >= total_shares, 'funded', funding_status)
              WHERE id = :id"
         );
-        $stmt->execute(['shares' => $sharesPurchased, 'id' => $propertyId]);
+        $stmt->execute(['shares' => $sharesPurchased, 'shares_check' => $sharesPurchased, 'id' => $propertyId]);
     }
 
     public function createInvestment(int $userId, int $propertyId, int $shares, string $amount): int

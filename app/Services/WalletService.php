@@ -116,7 +116,7 @@ final class WalletService
         ?string $description,
         ?int $createdByUserId,
     ): int {
-        if (!is_numeric($amount) || bccomp($amount, '0') <= 0) {
+        if (!is_numeric($amount) || bccomp($amount, '0', 8) <= 0) {
             throw new RuntimeException('Amount must be a positive numeric value.');
         }
 
@@ -138,7 +138,7 @@ final class WalletService
                 $currentBalance = $wallet['balance'];
                 $version = (int) $wallet['version'];
 
-                if ($direction === 'debit' && bccomp($currentBalance, $amount) < 0) {
+                if ($direction === 'debit' && bccomp($currentBalance, $amount, 8) < 0) {
                     throw new InsufficientBalanceException($section->value);
                 }
 

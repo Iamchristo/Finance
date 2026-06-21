@@ -27,7 +27,7 @@ final class AccrualService
             $dailyRate = $this->dailyRate((string) $subscription['roi_percent'], $subscription['roi_period']);
             $amount = bcmul($subscription['principal_amount'], bcdiv($dailyRate, '100', 10), 8);
 
-            if (bccomp($amount, '0') <= 0) {
+            if (bccomp($amount, '0', 8) <= 0) {
                 continue;
             }
 

@@ -26,7 +26,7 @@ final class StrategyService
             throw new ValidationException(['strategy' => 'This strategy is not available.']);
         }
 
-        if (bccomp($amount, '0') <= 0) {
+        if (bccomp($amount, '0', 8) <= 0) {
             throw new ValidationException(['amount' => 'Allocation amount must be greater than zero.']);
         }
 

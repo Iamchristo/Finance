@@ -31,11 +31,11 @@ final class PriceSimulatorService
             $newPrice = $this->nextPrice($instrument['current_price'], $instrument['previous_close'], $instrument['volatility_factor']);
             $newPrice = bcadd($newPrice, '0', (int) $instrument['price_precision']);
 
-            if (bccomp($newPrice, '0') <= 0) {
+            if (bccomp($newPrice, '0', 8) <= 0) {
                 continue;
             }
 
-            $changePercent = bccomp($instrument['previous_close'], '0') > 0
+            $changePercent = bccomp($instrument['previous_close'], '0', 8) > 0
                 ? bcmul(bcdiv(bcsub($newPrice, $instrument['previous_close'], 10), $instrument['previous_close'], 10), '100', 4)
                 : '0.0000';
 

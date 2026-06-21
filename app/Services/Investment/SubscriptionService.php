@@ -26,11 +26,11 @@ final class SubscriptionService
             throw new ValidationException(['plan' => 'This plan is not available.']);
         }
 
-        if (bccomp($amount, $plan['min_amount']) < 0) {
+        if (bccomp($amount, $plan['min_amount'], 8) < 0) {
             throw new ValidationException(['amount' => "Minimum investment for this plan is {$plan['min_amount']}."]);
         }
 
-        if ($plan['max_amount'] !== null && bccomp($amount, $plan['max_amount']) > 0) {
+        if ($plan['max_amount'] !== null && bccomp($amount, $plan['max_amount'], 8) > 0) {
             throw new ValidationException(['amount' => "Maximum investment for this plan is {$plan['max_amount']}."]);
         }
 

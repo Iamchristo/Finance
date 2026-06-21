@@ -20,7 +20,7 @@ final class MarketplaceService
 
     public function createListing(int $sellerUserId, ?int $propertyId, string $title, string $description, string $askingPrice): int
     {
-        if (bccomp($askingPrice, '0') <= 0) {
+        if (bccomp($askingPrice, '0', 8) <= 0) {
             throw new ValidationException(['asking_price' => 'Asking price must be greater than zero.']);
         }
 
@@ -29,7 +29,7 @@ final class MarketplaceService
 
     public function submitOffer(int $listingId, int $buyerUserId, string $amount): int
     {
-        if (bccomp($amount, '0') <= 0) {
+        if (bccomp($amount, '0', 8) <= 0) {
             throw new ValidationException(['offer_amount' => 'Offer amount must be greater than zero.']);
         }
 
@@ -48,7 +48,7 @@ final class MarketplaceService
 
     public function counterOffer(int $offerId, int $sellerUserId, string $counterAmount): void
     {
-        if (bccomp($counterAmount, '0') <= 0) {
+        if (bccomp($counterAmount, '0', 8) <= 0) {
             throw new ValidationException(['counter_amount' => 'Counter amount must be greater than zero.']);
         }
 

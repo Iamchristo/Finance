@@ -39,7 +39,7 @@ final class OrderService
             throw new ValidationException(['side' => 'Side must be buy or sell.']);
         }
 
-        if (bccomp($quantity, $instrument['min_trade_size']) < 0) {
+        if (bccomp($quantity, $instrument['min_trade_size'], 8) < 0) {
             throw new ValidationException(['quantity' => "Minimum trade size is {$instrument['min_trade_size']}."]);
         }
 
@@ -124,14 +124,14 @@ final class OrderService
             : bcmul(bcsub($entryPrice, $exitPrice, 8), $quantity, 8);
 
         $maxLoss = bcmul($marginUsed, '-1', 8);
-        $pnl = bccomp($rawPnl, $maxLoss) < 0 ? $maxLoss : $rawPnl;
+        $pnl = bccomp($rawPnl, $maxLoss, 8) < 0 ? $maxLoss : $rawPnl;
 
         Database::transaction(function () use ($position, $exitPrice, $pnl, $marginUsed, $status): void {
             $this->forex->closePosition((int) $position['id'], $exitPrice, $pnl, $status);
 
             $returnAmount = bcadd($marginUsed, $pnl, 8);
 
-            if (bccomp($returnAmount, '0') > 0) {
+            if (bccomp($returnAmount, '0', 8) > 0) {
                 $this->wallets->credit(
                     (int) $position['user_id'],
                     WalletSection::Forex,
