@@ -95,4 +95,23 @@ final class Database
     {
         return self::$transactionLevels[spl_object_id($pdo)] ?? 0;
     }
+
+    /**
+     * Test-only helpers: open one real transaction and seed the nesting counter
+     * so that every Database::transaction() call made during the test becomes a
+     * savepoint instead of a real commit, then roll everything back at once.
+     */
+    public static function beginTestTransaction(): void
+    {
+        $pdo = self::connection();
+        $pdo->beginTransaction();
+        self::$transactionLevels[spl_object_id($pdo)] = 1;
+    }
+
+    public static function rollbackTestTransaction(): void
+    {
+        $pdo = self::connection();
+        self::$transactionLevels[spl_object_id($pdo)] = 0;
+        $pdo->rollBack();
+    }
 }
