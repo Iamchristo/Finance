@@ -98,10 +98,31 @@ final class RealEstateRepository
         return $stmt->fetchAll();
     }
 
-    public function recordAccrual(int $investmentId, int $ledgerEntryId, string $amount, string $date): bool
+    /**
+     * Locks the (property_investment_id, accrual_date) slot for the duration
+     * of the caller's transaction, so a concurrent or re-run accrual for the
+     * same day blocks until this one commits instead of racing past the check.
+     */
+    public function hasAccrualForDate(int $investmentId, string $date): bool
     {
         $stmt = Database::connection()->prepare(
-            'INSERT IGNORE INTO re_accrual_logs (property_investment_id, ledger_entry_id, amount, accrual_date)
+            'SELECT 1 FROM re_accrual_logs WHERE property_investment_id = :investment_id AND accrual_date = :date FOR UPDATE'
+        );
+        $stmt->execute(['investment_id' => $investmentId, 'date' => $date]);
+
+        return $stmt->fetchColumn() !== false;
+    }
+
+    /**
+     * Plain INSERT (not INSERT IGNORE): callers must check hasAccrualForDate()
+     * first. If the unique constraint is violated anyway (a race the caller's
+     * lock didn't catch), the exception propagates and rolls back the wallet
+     * credit alongside it, so the two can never go out of sync.
+     */
+    public function recordAccrual(int $investmentId, int $ledgerEntryId, string $amount, string $date): void
+    {
+        $stmt = Database::connection()->prepare(
+            'INSERT INTO re_accrual_logs (property_investment_id, ledger_entry_id, amount, accrual_date)
              VALUES (:investment_id, :ledger_entry_id, :amount, :date)'
         );
         $stmt->execute([
@@ -110,8 +131,6 @@ final class RealEstateRepository
             'amount' => $amount,
             'date' => $date,
         ]);
-
-        return $stmt->rowCount() > 0;
     }
 
     public function createListing(int $sellerUserId, ?int $propertyId, string $title, string $description, string $askingPrice): int

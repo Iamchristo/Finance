@@ -76,10 +76,31 @@ final class InvestmentRepository
         return $stmt->fetchAll();
     }
 
-    public function recordAccrual(int $subscriptionId, int $ledgerEntryId, string $amount, string $date): bool
+    /**
+     * Locks the (subscription_id, accrual_date) slot for the duration of the
+     * caller's transaction, so a concurrent or re-run accrual for the same day
+     * blocks until this one commits instead of racing past the check.
+     */
+    public function hasAccrualForDate(int $subscriptionId, string $date): bool
     {
         $stmt = Database::connection()->prepare(
-            'INSERT IGNORE INTO investment_accrual_logs (subscription_id, ledger_entry_id, amount, accrual_date)
+            'SELECT 1 FROM investment_accrual_logs WHERE subscription_id = :subscription_id AND accrual_date = :date FOR UPDATE'
+        );
+        $stmt->execute(['subscription_id' => $subscriptionId, 'date' => $date]);
+
+        return $stmt->fetchColumn() !== false;
+    }
+
+    /**
+     * Plain INSERT (not INSERT IGNORE): callers must check hasAccrualForDate()
+     * first. If the unique constraint is violated anyway (a race the caller's
+     * lock didn't catch), the exception propagates and rolls back the wallet
+     * credit alongside it, so the two can never go out of sync.
+     */
+    public function recordAccrual(int $subscriptionId, int $ledgerEntryId, string $amount, string $date): void
+    {
+        $stmt = Database::connection()->prepare(
+            'INSERT INTO investment_accrual_logs (subscription_id, ledger_entry_id, amount, accrual_date)
              VALUES (:subscription_id, :ledger_entry_id, :amount, :date)'
         );
         $stmt->execute([
@@ -88,8 +109,6 @@ final class InvestmentRepository
             'amount' => $amount,
             'date' => $date,
         ]);
-
-        return $stmt->rowCount() > 0;
     }
 
     public function bumpAccruedTotal(int $subscriptionId, string $amount): void
