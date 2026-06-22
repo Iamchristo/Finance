@@ -24,8 +24,8 @@
             <input type="hidden" name="instrument_id" value="<?= e((string) $instrument['id']) ?>">
 
             <div class="grid grid-cols-2 gap-2">
-                <button type="submit" name="side" value="buy" class="btn-primary !bg-gain-500 hover:!bg-emerald-600">Buy / Long</button>
-                <button type="submit" name="side" value="sell" class="btn-primary !bg-loss-500 hover:!bg-rose-600">Sell / Short</button>
+                <button type="submit" name="side" value="buy" class="btn-primary !bg-gain-500 hover:opacity-90">Buy / Long</button>
+                <button type="submit" name="side" value="sell" class="btn-primary !bg-loss-500 hover:opacity-90">Sell / Short</button>
             </div>
 
             <div>

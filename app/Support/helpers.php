@@ -67,6 +67,23 @@ if (!function_exists('old')) {
     }
 }
 
+if (!function_exists('current_path')) {
+    function current_path(): string
+    {
+        return rtrim((string) strtok($_SERVER['REQUEST_URI'] ?? '/', '?'), '/') ?: '/';
+    }
+}
+
+if (!function_exists('is_active_path')) {
+    function is_active_path(string $path, bool $exact = false): bool
+    {
+        $current = current_path();
+        $path = rtrim($path, '/') ?: '/';
+
+        return $exact ? $current === $path : ($current === $path || str_starts_with($current . '/', $path . '/'));
+    }
+}
+
 if (!function_exists('vite_asset')) {
     function vite_asset(string $entry): string
     {

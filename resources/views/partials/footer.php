@@ -1,7 +1,7 @@
-<footer class="border-t border-slate-800 mt-12">
+<footer class="border-t border-surface-200 mt-12">
     <div class="mx-auto max-w-6xl px-4 py-8 grid sm:grid-cols-4 gap-6 text-sm">
         <div>
-            <div class="font-bold text-white mb-2">Meridian<span class="text-emerald-400">Capital</span></div>
+            <div class="font-bold text-white mb-2">Meridian<span class="text-brand-500">Capital</span></div>
             <p class="text-slate-500 text-xs"><?= e($simulatedBanner) ?></p>
         </div>
         <div>

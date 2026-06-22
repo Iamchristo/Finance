@@ -18,7 +18,7 @@
         <button type="submit" class="btn-primary w-full">Sign in</button>
     </form>
 
-    <p class="text-sm text-slate-400 mt-4">No account yet? <a href="/register" class="text-emerald-400 hover:underline">Create one</a></p>
+    <p class="text-sm text-slate-400 mt-4">No account yet? <a href="/register" class="text-brand-400 hover:underline">Create one</a></p>
 </div>
 
 <?php $this->stop() ?>

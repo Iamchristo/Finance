@@ -32,7 +32,7 @@
         <button type="submit" class="btn-primary w-full">Create account</button>
     </form>
 
-    <p class="text-sm text-slate-400 mt-4">Already have an account? <a href="/login" class="text-emerald-400 hover:underline">Sign in</a></p>
+    <p class="text-sm text-slate-400 mt-4">Already have an account? <a href="/login" class="text-brand-400 hover:underline">Sign in</a></p>
 </div>
 
 <?php $this->stop() ?>
