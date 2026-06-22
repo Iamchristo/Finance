@@ -144,12 +144,22 @@ final class ForexRepository
         return $stmt->fetchAll();
     }
 
-    public function closePosition(int $positionId, string $exitPrice, string $realizedPnl, string $status = 'closed'): void
+    /**
+     * Gated on status = 'open' so a concurrent close of the same position
+     * (e.g. an overlapping position-monitor cron run, or a duplicate manual
+     * close request) only ever wins once. Returns false when the position
+     * was already closed by someone else, so the caller can skip crediting
+     * the wallet a second time for the same closure.
+     */
+    public function closePosition(int $positionId, string $exitPrice, string $realizedPnl, string $status = 'closed'): bool
     {
         $stmt = Database::connection()->prepare(
-            'UPDATE fx_positions SET status = :status, exit_price = :exit_price, realized_pnl = :pnl, closed_at = NOW() WHERE id = :id'
+            "UPDATE fx_positions SET status = :status, exit_price = :exit_price, realized_pnl = :pnl, closed_at = NOW()
+             WHERE id = :id AND status = 'open'"
         );
         $stmt->execute(['status' => $status, 'exit_price' => $exitPrice, 'pnl' => $realizedPnl, 'id' => $positionId]);
+
+        return $stmt->rowCount() > 0;
     }
 
     public function findPosition(int $positionId): ?array

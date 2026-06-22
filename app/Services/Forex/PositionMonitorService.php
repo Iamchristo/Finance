@@ -35,20 +35,23 @@ final class PositionMonitorService
             $equity = bcadd($position['margin_used'], $pnl, 8);
 
             if (bccomp($equity, '0', 8) <= 0) {
-                $this->orders->settleClose($position, $currentPrice, 'liquidated');
-                $closed++;
+                if ($this->orders->settleClose($position, $currentPrice, 'liquidated')) {
+                    $closed++;
+                }
                 continue;
             }
 
             if ($this->hitStopLoss($position, $currentPrice)) {
-                $this->orders->settleClose($position, $position['stop_loss'], 'closed');
-                $closed++;
+                if ($this->orders->settleClose($position, $position['stop_loss'], 'closed')) {
+                    $closed++;
+                }
                 continue;
             }
 
             if ($this->hitTakeProfit($position, $currentPrice)) {
-                $this->orders->settleClose($position, $position['take_profit'], 'closed');
-                $closed++;
+                if ($this->orders->settleClose($position, $position['take_profit'], 'closed')) {
+                    $closed++;
+                }
             }
         }
 

@@ -111,9 +111,15 @@ final class OrderService
      * Shared by manual closes (status=closed) and the position-monitor cron
      * (status=closed for SL/TP hits, status=liquidated for margin calls).
      *
+     * closePosition() is gated on status='open', so if a concurrent caller
+     * (an overlapping cron run, or a duplicate manual close) already closed
+     * this position, it returns false here and the wallet credit is skipped
+     * — the position can only ever be paid out once.
+     *
      * @param array<string, mixed> $position
+     * @return bool whether this call actually closed the position
      */
-    public function settleClose(array $position, string $exitPrice, string $status): void
+    public function settleClose(array $position, string $exitPrice, string $status): bool
     {
         $entryPrice = $position['entry_price'];
         $quantity = $position['quantity'];
@@ -126,8 +132,12 @@ final class OrderService
         $maxLoss = bcmul($marginUsed, '-1', 8);
         $pnl = bccomp($rawPnl, $maxLoss, 8) < 0 ? $maxLoss : $rawPnl;
 
-        Database::transaction(function () use ($position, $exitPrice, $pnl, $marginUsed, $status): void {
-            $this->forex->closePosition((int) $position['id'], $exitPrice, $pnl, $status);
+        return Database::transaction(function () use ($position, $exitPrice, $pnl, $marginUsed, $status): bool {
+            $didClose = $this->forex->closePosition((int) $position['id'], $exitPrice, $pnl, $status);
+
+            if (!$didClose) {
+                return false;
+            }
 
             $returnAmount = bcadd($marginUsed, $pnl, 8);
 
@@ -142,6 +152,8 @@ final class OrderService
                     $status === 'liquidated' ? 'Position liquidated' : 'Position closed'
                 );
             }
+
+            return true;
         });
     }
 }
