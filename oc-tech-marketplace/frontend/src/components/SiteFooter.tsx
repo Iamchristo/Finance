@@ -12,8 +12,11 @@ export function SiteFooter() {
           <Link href="/vendor/apply" className="hover:text-foreground">
             Sell on OC TECH
           </Link>
-          <Link href="/account/downloads" className="hover:text-foreground">
-            My Downloads
+          <Link href="/account" className="hover:text-foreground">
+            My Account
+          </Link>
+          <Link href="/account/support" className="hover:text-foreground">
+            Support
           </Link>
         </div>
       </div>

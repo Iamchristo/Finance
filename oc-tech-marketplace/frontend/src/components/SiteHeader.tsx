@@ -35,7 +35,7 @@ export function SiteHeader() {
           {mounted && user ? (
             <>
               <Link
-                href={user.role === "vendor" ? "/vendor/dashboard" : "/account/downloads"}
+                href={user.role === "vendor" ? "/vendor/dashboard" : "/account"}
                 className="hidden text-sm font-medium text-foreground/70 hover:text-foreground sm:block"
               >
                 {user.name}

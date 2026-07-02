@@ -18,7 +18,6 @@ class Vendor extends Model
         'verification_status',
         'verified_at',
         'commission_rate',
-        'balance',
     ];
 
     protected function casts(): array
@@ -26,7 +25,6 @@ class Vendor extends Model
         return [
             'verified_at' => 'datetime',
             'commission_rate' => 'decimal:2',
-            'balance' => 'decimal:2',
         ];
     }
 
@@ -43,5 +41,10 @@ class Vendor extends Model
     public function coupons(): HasMany
     {
         return $this->hasMany(Coupon::class);
+    }
+
+    public function withdrawalRequests(): HasMany
+    {
+        return $this->hasMany(WithdrawalRequest::class);
     }
 }

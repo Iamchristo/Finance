@@ -3,9 +3,10 @@ export type Vendor = {
   store_name: string;
   slug: string;
   description: string | null;
+  website_url?: string | null;
   verification_status: string;
   commission_rate: string;
-  balance: string;
+  wallet_balance?: string;
 };
 
 export type Category = {
@@ -33,6 +34,19 @@ export type ProductFile = {
   is_current: boolean;
 };
 
+export type Review = {
+  id: number;
+  product_id: number;
+  user_id: number;
+  rating: number;
+  comment: string | null;
+  is_verified_purchase: boolean;
+  vendor_reply: string | null;
+  helpful_votes: number;
+  created_at: string;
+  user?: { id: number; name: string };
+};
+
 export type Product = {
   id: number;
   vendor_id: number;
@@ -52,6 +66,59 @@ export type Product = {
   category?: Category;
   licenses?: License[];
   files?: ProductFile[];
+  reviews?: Review[];
+};
+
+export type WishlistEntry = {
+  id: number;
+  product_id: number;
+  product?: Product;
+};
+
+export type Coupon = {
+  id: number;
+  code: string;
+  type: "percentage" | "fixed";
+  value: string;
+  usage_limit: number | null;
+  used_count: number;
+  expires_at: string | null;
+  is_active: boolean;
+};
+
+export type VendorAnalytics = {
+  total_revenue: number;
+  total_sales: number;
+  wallet_balance: string;
+  product_count: number;
+  top_products: { id: number; title: string; sales_count: number; average_rating: string }[];
+  recent_orders: OrderItem[];
+};
+
+export type WithdrawalRequest = {
+  id: number;
+  amount: string;
+  status: "pending" | "approved" | "rejected";
+  payout_method: string;
+  notes: string | null;
+  created_at: string;
+};
+
+export type SupportTicketMessage = {
+  id: number;
+  message: string;
+  created_at: string;
+  user?: { id: number; name: string; role?: string };
+};
+
+export type SupportTicket = {
+  id: number;
+  subject: string;
+  status: string;
+  priority: string;
+  created_at: string;
+  user?: { id: number; name: string; email: string };
+  messages?: SupportTicketMessage[];
 };
 
 export type Paginated<T> = {
@@ -71,6 +138,7 @@ export type Order = {
   grand_total: string;
   payment_gateway: string | null;
   paid_at: string | null;
+  created_at: string;
   items?: OrderItem[];
 };
 
@@ -83,6 +151,7 @@ export type OrderItem = {
   downloads_used: number;
   product?: Product;
   license?: License;
+  order?: Order;
 };
 
 export type Wallet = {

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Models\Vendor;
+use App\Models\Wallet;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -45,6 +46,27 @@ class VendorController extends Controller
         if (! $vendor) {
             return response()->json(['message' => 'No vendor profile found.'], 404);
         }
+
+        return response()->json([
+            ...$vendor->toArray(),
+            'wallet_balance' => Wallet::firstOrCreate(['user_id' => $vendor->user_id])->balance,
+        ]);
+    }
+
+    public function update(Request $request)
+    {
+        $vendor = $request->user()->vendor;
+
+        abort_unless($vendor, 404, 'No vendor profile found.');
+
+        $data = $request->validate([
+            'store_name' => ['sometimes', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'website_url' => ['nullable', 'url'],
+            'logo_url' => ['nullable', 'url'],
+        ]);
+
+        $vendor->update($data);
 
         return response()->json($vendor);
     }

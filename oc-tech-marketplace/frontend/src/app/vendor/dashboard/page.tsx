@@ -4,14 +4,11 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { apiFetch, ApiError } from "@/lib/api";
 import { useRequireAuth } from "@/lib/useRequireAuth";
-import type { Category, Product } from "@/lib/types";
-
-type VendorProfile = {
-  id: number;
-  store_name: string;
-  verification_status: string;
-  balance: string;
-};
+import { VendorAnalyticsPanel } from "@/components/vendor/VendorAnalyticsPanel";
+import { VendorCoupons } from "@/components/vendor/VendorCoupons";
+import { VendorSettingsForm } from "@/components/vendor/VendorSettingsForm";
+import { VendorWithdrawals } from "@/components/vendor/VendorWithdrawals";
+import type { Category, Product, Vendor as VendorProfile } from "@/lib/types";
 
 type LicenseDraft = { type: string; name: string; price: string; download_limit: string };
 
@@ -31,6 +28,7 @@ export default function VendorDashboardPage() {
   const [summary, setSummary] = useState("");
   const [basePrice, setBasePrice] = useState("");
   const [licenses, setLicenses] = useState<LicenseDraft[]>([{ ...emptyLicense }]);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   async function refresh(authToken: string) {
     try {
@@ -40,6 +38,7 @@ export default function VendorDashboardPage() {
       ]);
       setVendor(vendorRes);
       setProducts(productsRes);
+      setRefreshKey((k) => k + 1);
     } catch {
       setVendor(null);
     }
@@ -157,7 +156,7 @@ export default function VendorDashboardPage() {
               >
                 {vendor.verification_status}
               </span>{" "}
-              &middot; Wallet balance ${vendor.balance}
+              &middot; Wallet balance ${vendor.wallet_balance}
             </p>
           </div>
           <button
@@ -173,6 +172,15 @@ export default function VendorDashboardPage() {
             Your vendor profile is pending verification. You can prepare products now, but you
             won&apos;t be able to publish them until an administrator approves your account.
           </div>
+        )}
+
+        {token && (
+          <>
+            <VendorAnalyticsPanel key={refreshKey} token={token} />
+            <VendorSettingsForm token={token} vendor={vendor} onUpdated={setVendor} />
+            <VendorCoupons token={token} />
+            <VendorWithdrawals token={token} onChange={() => refresh(token)} />
+          </>
         )}
 
         {showForm && (

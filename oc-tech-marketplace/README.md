@@ -13,12 +13,12 @@ fintech simulation app at the repo root.
 
 ## Status
 
-**Phase 0 (scaffold) and Phase 1 (core commerce loop) are done.** The app now
-supports a full, working purchase flow end-to-end: a customer can register,
-browse products, add a license to their cart, pay with wallet balance or bank
-transfer, and download the purchased file via a signed, expiring URL — while a
-vendor earns their commission-split payout automatically. See
-[Roadmap](#roadmap) for what's next.
+**Phases 0–2 are done** (scaffold, core commerce loop, customer & vendor
+dashboards). A customer can register, browse, wishlist, buy with wallet or
+bank-transfer, download, review, and raise a support ticket. A vendor can
+apply, get approved, publish products, edit store settings, run coupons, watch
+live sales analytics, and request a payout. See [Roadmap](#roadmap) for what's
+next.
 
 ## Stack
 
@@ -85,6 +85,17 @@ Frontend: http://localhost:3000
 - Secure downloads: `POST /api/downloads/{product}/request` verifies the caller purchased the
   product and is under their license's download limit, then issues a 10-minute `temporarySignedRoute`
   that streams the file — tampered or expired links are rejected with 403
+- Wishlist (`/api/wishlist`), reviews gated on a completed purchase (`POST /api/products/{product}/reviews`,
+  with vendor replies via `POST /api/reviews/{review}/reply`) — the product's `average_rating` recomputes
+  on each new review
+- Vendor store settings (`PATCH /api/vendor/me`), coupon CRUD scoped to the vendor's own products
+  (`/api/vendor/coupons`), and a revenue/sales analytics endpoint (`GET /api/vendor/analytics`)
+- Withdrawal requests: a vendor requests a payout (`POST /api/vendor/withdrawals`), which debits their
+  wallet immediately to prevent double-spending the same balance while pending; an admin then
+  approves (funds already moved) or rejects (funds refunded) via `/api/admin/withdrawals/*`
+- Support tickets with a threaded message history (`support_ticket_messages`) — customers open and
+  reply to their own tickets, staff roles (support_agent/moderator/administrator/super_administrator)
+  can see and reply to all of them
 
 **Frontend (`frontend/`)**
 - Next.js App Router project with the brand theme (blue → orange gradient, glassmorphism,
@@ -96,14 +107,22 @@ Frontend: http://localhost:3000
   async rehydration and bounce a logged-in user to `/login` on reload)
 - Shopping: `/products` (search), `/products/[slug]` (license picker), `/cart` (coupon field,
   wallet/bank-transfer payment), `/checkout/success`
-- Account: `/account/wallet` (balance, top-up, transaction history), `/account/downloads`
-  (triggers the signed download URL)
-- Vendor: `/vendor/apply`, `/vendor/dashboard` (create products with license tiers, upload
-  files, publish)
+- Account hub at `/account` linking to: `/account/orders` (history + invoice detail),
+  `/account/downloads`, `/account/wishlist`, `/account/wallet` (balance, top-up, transaction
+  history), `/account/support` (ticket list, new ticket, threaded reply view)
+- Product detail page: wishlist heart button, star-rating review form (gated to purchasers,
+  shows a "Verified Purchase" badge and any vendor reply)
+- Vendor: `/vendor/apply`, `/vendor/dashboard` (store settings editor, live revenue/sales
+  analytics with top products, coupon management, withdrawal requests, plus the existing
+  product creation/upload/publish flow)
 
-This was verified with a scripted browser run of the full loop — register as a vendor, apply,
+This was verified with two scripted browser runs. Phase 1's run: register as a vendor, apply,
 get approved, create a product with two license tiers, upload a file, publish it, sign in as a
 different customer, buy it with wallet funds, and download the exact file that was uploaded.
+Phase 2's run extended that same loop through wishlisting a product, leaving a verified-purchase
+review, checking the order invoice, opening a support ticket and getting a staff reply, and on
+the vendor side: editing store settings, creating a coupon, and requesting (then having an admin
+approve) a withdrawal — confirming the vendor's analytics panel reflects each change live.
 
 Everything else below is scoped for later phases.
 
@@ -120,20 +139,26 @@ cover. It's broken down here by phase so it can be picked up incrementally.
   wired up yet — deferred rather than half-implemented, since they can't be exercised without
   real gateway credentials
 - Secure/signed downloads with license download-limit enforcement
-- Order → payout pipeline with marketplace commission splits (wallet-based; no payout withdrawal
-  flow to a bank/card yet)
+- Order → payout pipeline with marketplace commission splits, including vendor-initiated
+  withdrawal requests with admin approve/reject (still bank_transfer/manual payout, not a real
+  payment-gateway payout API)
 
-### Phase 2 — Customer & vendor dashboards
-- Customer dashboard: orders, downloads, invoices, license keys, wishlist,
-  reviews, notifications, saved payment methods
-- Vendor dashboard: store settings, analytics, revenue, withdrawals, coupons,
-  changelog/version management, store SEO
-- Messaging (customer ↔ vendor ↔ admin), support tickets, notifications
-  (email first, then push/SMS)
+### Phase 2 — Customer & vendor dashboards ✅ done
+- Customer dashboard: orders + invoices, downloads, wishlist, reviews, support tickets
+  (license keys, notifications, and saved payment methods are still open — the last two need
+  real email/push infra and a card-on-file gateway, respectively)
+- Vendor dashboard: store settings, analytics, revenue, withdrawals, coupons (changelog/version
+  announcements and store SEO settings are still open)
+- Support tickets with threaded replies are live; customer↔vendor direct messaging and
+  email/push/SMS notifications are not — those need real-time infra (websockets/Reverb) and a
+  mail/push provider, deferred rather than stubbed
 
 ### Phase 3 — Admin & trust/safety
+- Admin dashboard UI (vendor approval, withdrawal approval, and order payment confirmation
+  currently only exist as role-gated API endpoints, exercised via curl/CLI in this repo's tests —
+  there's no screen for an admin to do this yet)
 - Admin analytics dashboard (revenue, traffic, conversion, top products/vendors)
-- Reviews with verified-purchase badges, vendor replies, abuse reporting
+- Review abuse reporting (verified-purchase badges and vendor replies shipped in Phase 2)
 - Security: 2FA, passkeys, rate limiting, audit logs, fraud detection basics
 - Search: Meilisearch integration, faceted browse, typo-tolerant search
 

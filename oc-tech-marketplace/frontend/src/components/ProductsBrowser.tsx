@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
+import { WishlistButton } from "@/components/WishlistButton";
 import type { Paginated, Product } from "@/lib/types";
 
 export function ProductsBrowser() {
@@ -71,8 +72,11 @@ export function ProductsBrowser() {
               <Link
                 key={product.id}
                 href={`/products/${product.slug}`}
-                className="glass flex flex-col rounded-2xl p-5 shadow-sm transition-transform hover:-translate-y-1"
+                className="glass relative flex flex-col rounded-2xl p-5 shadow-sm transition-transform hover:-translate-y-1"
               >
+                <div className="absolute right-4 top-4 z-10">
+                  <WishlistButton productId={product.id} />
+                </div>
                 <div className="brand-gradient mb-4 h-36 w-full rounded-xl opacity-80" />
                 <span className="text-xs font-medium uppercase tracking-wide text-brand-orange">
                   {product.category?.name}

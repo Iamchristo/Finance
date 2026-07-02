@@ -3,6 +3,8 @@
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
+import { ProductReviews } from "@/components/ProductReviews";
+import { WishlistButton } from "@/components/WishlistButton";
 import type { License, Product } from "@/lib/types";
 import { useCartStore } from "@/store/cart";
 
@@ -58,15 +60,31 @@ export default function ProductDetailPage() {
     <main className="flex-1 px-6 py-12">
       <div className="mx-auto grid max-w-6xl grid-cols-1 gap-10 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <div className="brand-gradient h-72 w-full rounded-3xl opacity-80" />
+          <div className="relative">
+            <div className="brand-gradient h-72 w-full rounded-3xl opacity-80" />
+            <div className="absolute right-4 top-4">
+              <WishlistButton productId={product.id} />
+            </div>
+          </div>
           <span className="mt-6 inline-block text-xs font-medium uppercase tracking-wide text-brand-orange">
             {product.category?.name}
           </span>
           <h1 className="mt-2 text-3xl font-bold tracking-tight">{product.title}</h1>
           <p className="mt-2 text-sm text-foreground/50">
             by {product.vendor?.store_name} &middot; {product.sales_count} sales
+            {parseFloat(product.average_rating) > 0 && (
+              <> &middot; {product.average_rating} ★</>
+            )}
           </p>
           <p className="mt-6 text-foreground/70">{product.description || product.summary}</p>
+
+          <ProductReviews
+            productId={product.id}
+            reviews={product.reviews ?? []}
+            onReviewAdded={(review) =>
+              setProduct((prev) => (prev ? { ...prev, reviews: [...(prev.reviews ?? []), review] } : prev))
+            }
+          />
         </div>
 
         <div className="glass h-fit rounded-3xl p-6">
