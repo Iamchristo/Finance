@@ -13,12 +13,12 @@ fintech simulation app at the repo root.
 
 ## Status
 
-This is the **foundational scaffold** (Phase 0). It stands up a working backend
-and frontend with the core marketplace domain modeled end-to-end (auth, vendors,
-categories, products, licenses, orders, reviews, wallets, coupons, support
-tickets), so future work has a real codebase to extend rather than a blank
-repo. It is not feature-complete against the full vision below — see
-[Roadmap](#roadmap).
+**Phase 0 (scaffold) and Phase 1 (core commerce loop) are done.** The app now
+supports a full, working purchase flow end-to-end: a customer can register,
+browse products, add a license to their cart, pay with wallet balance or bank
+transfer, and download the purchased file via a signed, expiring URL — while a
+vendor earns their commission-split payout automatically. See
+[Roadmap](#roadmap) for what's next.
 
 ## Stack
 
@@ -71,12 +71,39 @@ Frontend: http://localhost:3000
   `Vendor`, `Category` (self-referencing), `Product`, `ProductFile` (versioned files), `License`,
   `Order`, `OrderItem`, `Review`, `Wishlist`, `Coupon`, `Wallet`, `WalletTransaction`, `SupportTicket`
 - Public API: `GET /api/products` (filterable/paginated), `GET /api/products/{slug}`, `GET /api/categories`
+- Vendor onboarding: `POST /api/vendor/apply` (self-serve, sets role to vendor, status `pending`),
+  admin approval via `POST /api/admin/vendors/{vendor}/approve` (role-gated), `app:promote-user-role`
+  artisan command to bootstrap an admin locally
+- Vendor product management: `POST /api/vendor/products` (with nested license tiers),
+  `POST /api/vendor/products/{product}/files` (versioned file upload), `POST /api/vendor/products/{product}/publish`
+  (blocked until the vendor is verified and a file + license exist)
+- Checkout (`OrderService`): builds an order with per-item vendor commission splits, applies coupon
+  discounts, and settles payment via **wallet balance** (atomic debit/credit, rolls back on
+  insufficient funds) or **bank transfer** (order stays pending until an admin confirms it via
+  `POST /api/admin/orders/{order}/confirm-payment`) — both fully working without any third-party
+  payment gateway credentials
+- Secure downloads: `POST /api/downloads/{product}/request` verifies the caller purchased the
+  product and is under their license's download limit, then issues a 10-minute `temporarySignedRoute`
+  that streams the file — tampered or expired links are rejected with 403
 
 **Frontend (`frontend/`)**
 - Next.js App Router project with the brand theme (blue → orange gradient, glassmorphism,
   dark mode variables) wired into Tailwind v4's CSS-based theme
-- Branded homepage: hero + search, category grid, featured products, marketplace stats,
-  vendor CTA, footer
+- Branded homepage: hero + search, category grid, featured products (live from the API),
+  marketplace stats, vendor CTA, footer
+- Auth: `/login`, `/register` (React Hook Form + Zod), Zustand-backed session persisted to
+  localStorage (with a `useAuthHydrated` guard so protected pages don't race the store's
+  async rehydration and bounce a logged-in user to `/login` on reload)
+- Shopping: `/products` (search), `/products/[slug]` (license picker), `/cart` (coupon field,
+  wallet/bank-transfer payment), `/checkout/success`
+- Account: `/account/wallet` (balance, top-up, transaction history), `/account/downloads`
+  (triggers the signed download URL)
+- Vendor: `/vendor/apply`, `/vendor/dashboard` (create products with license tiers, upload
+  files, publish)
+
+This was verified with a scripted browser run of the full loop — register as a vendor, apply,
+get approved, create a product with two license tiers, upload a file, publish it, sign in as a
+different customer, buy it with wallet funds, and download the exact file that was uploaded.
 
 Everything else below is scoped for later phases.
 
@@ -85,13 +112,16 @@ Everything else below is scoped for later phases.
 The full product vision spans far more ground than one implementation pass can
 cover. It's broken down here by phase so it can be picked up incrementally.
 
-### Phase 1 — Core commerce loop
-- Vendor onboarding & verification (KYC, portfolio, manual/auto approval)
-- Product upload flow with file versioning, screenshots, live demo links
-- Cart, checkout, tax calculation, coupons, gift cards
-- Payment gateways: Stripe, PayPal, Lemon Squeezy (start with these three)
-- Secure/signed downloads with license enforcement and download limits
-- Order → payout pipeline with marketplace commission splits
+### Phase 1 — Core commerce loop ✅ done
+- Vendor onboarding & verification (manual admin approval — KYC/portfolio review still open)
+- Product upload flow with file versioning (screenshots/live demo links still open)
+- Cart, checkout, coupons (tax calculation and gift cards still open)
+- Payment: wallet balance and bank transfer are live; Stripe/PayPal/Lemon Squeezy are not
+  wired up yet — deferred rather than half-implemented, since they can't be exercised without
+  real gateway credentials
+- Secure/signed downloads with license download-limit enforcement
+- Order → payout pipeline with marketplace commission splits (wallet-based; no payout withdrawal
+  flow to a bank/card yet)
 
 ### Phase 2 — Customer & vendor dashboards
 - Customer dashboard: orders, downloads, invoices, license keys, wishlist,
