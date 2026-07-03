@@ -14,7 +14,7 @@ class ProductController extends Controller
     public function index(Request $request)
     {
         $products = Product::query()
-            ->with(['vendor', 'category'])
+            ->with(['vendor', 'category', 'flashSales' => fn ($q) => $q->active()])
             ->where('status', 'published')
             ->when($request->query('category'), fn ($query, $slug) => $query->whereHas(
                 'category',
@@ -29,7 +29,7 @@ class ProductController extends Controller
 
     public function show(Product $product)
     {
-        $product->load(['vendor', 'category', 'licenses']);
+        $product->load(['vendor', 'category', 'licenses', 'flashSales' => fn ($q) => $q->active()]);
         $product->setRelation('reviews', $product->reviews()->visible()->with('user')->get());
 
         return response()->json($product);

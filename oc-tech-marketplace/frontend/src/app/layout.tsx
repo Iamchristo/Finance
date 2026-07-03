@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
+import { AiChatWidget } from "@/components/AiChatWidget";
+import { CompareBar } from "@/components/CompareBar";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,9 +16,20 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+
 export const metadata: Metadata = {
-  title: "OC TECH Marketplace",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "OC TECH Marketplace",
+    template: "%s | OC TECH Marketplace",
+  },
   description: "All Digital Products. One Smart Marketplace.",
+  openGraph: {
+    title: "OC TECH Marketplace",
+    description: "All Digital Products. One Smart Marketplace.",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
@@ -33,6 +46,8 @@ export default function RootLayout({
         <SiteHeader />
         <div className="flex flex-1 flex-col">{children}</div>
         <SiteFooter />
+        <AiChatWidget />
+        <CompareBar />
       </body>
     </html>
   );

@@ -21,6 +21,12 @@ export function SiteHeader() {
           <Link href="/products" className="hover:text-foreground">
             Products
           </Link>
+          <Link href="/bundles" className="hover:text-foreground">
+            Bundles
+          </Link>
+          <Link href="/blog" className="hover:text-foreground">
+            Blog
+          </Link>
           <Link href="/vendor/apply" className="hover:text-foreground">
             Become a Vendor
           </Link>

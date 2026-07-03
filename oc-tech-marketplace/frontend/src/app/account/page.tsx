@@ -9,6 +9,7 @@ const links = [
   { href: "/account/wishlist", label: "Wishlist", description: "Products you've saved for later" },
   { href: "/account/wallet", label: "Wallet", description: "Balance, top-ups, and transaction history" },
   { href: "/account/support", label: "Support", description: "Open tickets and message our team" },
+  { href: "/account/referrals", label: "Refer & Earn", description: "Share your link and earn wallet bonuses" },
 ];
 
 export default function AccountPage() {

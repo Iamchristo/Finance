@@ -10,6 +10,7 @@ const links = [
   { href: "/admin/withdrawals", label: "Withdrawals" },
   { href: "/admin/orders", label: "Orders" },
   { href: "/admin/reviews", label: "Reviews" },
+  { href: "/admin/blog", label: "Blog" },
   { href: "/account/support", label: "Support" },
 ];
 

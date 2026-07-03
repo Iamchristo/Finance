@@ -20,6 +20,7 @@ class Order extends Model
         'payment_gateway',
         'payment_reference',
         'coupon_id',
+        'bundle_id',
         'paid_at',
     ];
 
@@ -42,6 +43,11 @@ class Order extends Model
     public function coupon(): BelongsTo
     {
         return $this->belongsTo(Coupon::class);
+    }
+
+    public function bundle(): BelongsTo
+    {
+        return $this->belongsTo(Bundle::class);
     }
 
     public function items(): HasMany

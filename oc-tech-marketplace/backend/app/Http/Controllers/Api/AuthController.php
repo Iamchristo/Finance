@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 
 class AuthController extends Controller
@@ -18,19 +19,35 @@ class AuthController extends Controller
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'confirmed', Password::defaults()],
             'role' => ['sometimes', 'in:customer,vendor'],
+            'referral_code' => ['nullable', 'string', 'exists:users,referral_code'],
         ]);
+
+        $referrer = isset($data['referral_code'])
+            ? User::where('referral_code', $data['referral_code'])->first()
+            : null;
 
         $user = User::create([
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
             'role' => $data['role'] ?? UserRole::Customer->value,
+            'referral_code' => $this->generateReferralCode(),
+            'referred_by_user_id' => $referrer?->id,
         ]);
 
         return response()->json([
             'user' => $user,
             'token' => $user->createToken('api')->plainTextToken,
         ], 201);
+    }
+
+    private function generateReferralCode(): string
+    {
+        do {
+            $code = strtoupper(Str::random(8));
+        } while (User::where('referral_code', $code)->exists());
+
+        return $code;
     }
 
     public function login(Request $request)

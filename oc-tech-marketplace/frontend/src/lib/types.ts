@@ -52,6 +52,15 @@ export type Review = {
   product?: { id: number; title: string };
 };
 
+export type FlashSale = {
+  id: number;
+  product_id: number;
+  discount_percent: number;
+  starts_at: string;
+  ends_at: string;
+  product?: { id: number; title: string; slug: string; base_price: string };
+};
+
 export type Product = {
   id: number;
   vendor_id: number;
@@ -67,12 +76,19 @@ export type Product = {
   download_count: number;
   average_rating: string;
   published_at: string | null;
+  active_flash_sale?: FlashSale | null;
   vendor?: Vendor;
   category?: Category;
   licenses?: License[];
   files?: ProductFile[];
   reviews?: Review[];
 };
+
+export function effectiveProductPrice(product: Product): number {
+  const base = parseFloat(product.base_price);
+  if (!product.active_flash_sale) return base;
+  return Math.round(base * (1 - product.active_flash_sale.discount_percent / 100) * 100) / 100;
+}
 
 export type WishlistEntry = {
   id: number;
@@ -196,4 +212,54 @@ export type AuditLogEntry = {
   metadata: Record<string, unknown> | null;
   created_at: string;
   user?: { id: number; name: string } | null;
+};
+
+export type Bundle = {
+  id: number;
+  vendor_id: number;
+  title: string;
+  slug: string;
+  description: string | null;
+  bundle_price: string;
+  is_active: boolean;
+  vendor?: { id: number; store_name: string };
+  products?: Product[];
+};
+
+export type ReferralReward = {
+  id: number;
+  amount: string;
+  created_at: string;
+  referred_user?: { id: number; name: string };
+};
+
+export type ReferralSummary = {
+  referral_code: string;
+  referred_count: number;
+  total_earned: number;
+  rewards: ReferralReward[];
+};
+
+export type AiSearchResponse = {
+  ai_powered: boolean;
+  summary: string;
+  results: Product[];
+};
+
+export type AiChatTurn = {
+  role: "user" | "assistant";
+  content: string;
+};
+
+export type BlogPost = {
+  id: number;
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  body: string;
+  cover_image_url: string | null;
+  status: string;
+  published_at: string | null;
+  created_at: string;
+  author?: { id: number; name: string } | null;
 };

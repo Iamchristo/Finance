@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Bundle;
 use App\Services\OrderService;
 use Illuminate\Http\Request;
 
@@ -26,6 +27,20 @@ class CheckoutController extends Controller
             $data['coupon_code'] ?? null,
             $data['payment_method'],
         );
+
+        return response()->json($order, 201);
+    }
+
+    public function storeBundle(Request $request)
+    {
+        $data = $request->validate([
+            'bundle_id' => ['required', 'exists:bundles,id'],
+            'payment_method' => ['required', 'in:wallet,bank_transfer'],
+        ]);
+
+        $bundle = Bundle::where('is_active', true)->findOrFail($data['bundle_id']);
+
+        $order = $this->orders->checkoutBundle($request->user(), $bundle, $data['payment_method']);
 
         return response()->json($order, 201);
     }

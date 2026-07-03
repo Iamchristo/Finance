@@ -9,8 +9,8 @@ export function HeroSearch() {
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const params = term.trim() ? `?search=${encodeURIComponent(term.trim())}` : "";
-    router.push(`/products${params}`);
+    const params = term.trim() ? `?q=${encodeURIComponent(term.trim())}` : "";
+    router.push(`/search${params}`);
   }
 
   return (
@@ -19,7 +19,7 @@ export function HeroSearch() {
         type="search"
         value={term}
         onChange={(e) => setTerm(e.target.value)}
-        placeholder="Search for products, categories, or vendors..."
+        placeholder='Try "a SaaS starter kit under $100"...'
         className="flex-1 bg-transparent px-4 py-3 text-sm outline-none placeholder:text-foreground/40"
       />
       <button

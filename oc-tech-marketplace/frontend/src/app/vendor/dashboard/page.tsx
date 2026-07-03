@@ -8,6 +8,8 @@ import { VendorAnalyticsPanel } from "@/components/vendor/VendorAnalyticsPanel";
 import { VendorCoupons } from "@/components/vendor/VendorCoupons";
 import { VendorSettingsForm } from "@/components/vendor/VendorSettingsForm";
 import { VendorWithdrawals } from "@/components/vendor/VendorWithdrawals";
+import { VendorFlashSales } from "@/components/vendor/VendorFlashSales";
+import { VendorBundles } from "@/components/vendor/VendorBundles";
 import type { Category, Product, Vendor as VendorProfile } from "@/lib/types";
 
 type LicenseDraft = { type: string; name: string; price: string; download_limit: string };
@@ -179,6 +181,8 @@ export default function VendorDashboardPage() {
             <VendorAnalyticsPanel key={refreshKey} token={token} />
             <VendorSettingsForm token={token} vendor={vendor} onUpdated={setVendor} />
             <VendorCoupons token={token} />
+            <VendorFlashSales token={token} products={products} />
+            <VendorBundles token={token} products={products} />
             <VendorWithdrawals token={token} onChange={() => refresh(token)} />
           </>
         )}

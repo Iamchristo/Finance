@@ -13,13 +13,16 @@ fintech simulation app at the repo root.
 
 ## Status
 
-**Phases 0–3 are done** (scaffold, core commerce loop, customer & vendor
-dashboards, admin & trust/safety). A customer can register, browse, wishlist,
-buy with wallet or bank-transfer, download, review, and raise a support
-ticket. A vendor can apply, get approved, publish products, edit store
-settings, run coupons, watch live sales analytics, and request a payout. An
-admin has a dashboard for platform-wide analytics, vendor approvals, order
-payment confirmation, withdrawal approvals, and review moderation. See
+**Phases 0–4 are done** (scaffold, core commerce loop, customer & vendor
+dashboards, admin & trust/safety, growth & AI). A customer can register,
+browse, wishlist, buy with wallet or bank-transfer, download, review, and
+raise a support ticket — plus search in natural language, compare products,
+see recommendations, buy bundles and flash-sale deals, refer friends for a
+wallet bonus, and chat with an AI support assistant. A vendor can apply, get
+approved, publish products, edit store settings, run coupons/flash
+sales/bundles, watch live sales analytics, and request a payout. An admin has
+a dashboard for platform-wide analytics, vendor approvals, order payment
+confirmation, withdrawal approvals, review moderation, and a blog CMS. See
 [Roadmap](#roadmap) for what's next.
 
 ## Stack
@@ -134,9 +137,44 @@ Frontend: http://localhost:3000
 - Audit log: every admin approve/reject/hide/confirm action is recorded (actor, action, subject,
   metadata) via an `AuditLog` model (`GET /api/admin/audit-logs`; no dedicated UI screen yet)
 - Auth rate limiting: `POST /api/auth/register` (10/min) and `POST /api/auth/login` (5/min) are
-  throttled per IP
+  throttled per IP, each on its own bucket (a distinct `throttle` prefix per route — Laravel's
+  default `throttle:N,M` middleware keys solely by IP with no route in the signature, so without
+  a prefix every throttled guest route on the same IP shares one counter; found this the hard way
+  when register calls were silently eating into login's allowance)
 
-This was verified with three scripted browser runs. Phase 1's run: register as a vendor, apply,
+**Growth & AI (`backend/`, `frontend/`)**
+- AI-powered search: `POST /api/search/ai` sends the shopper's natural-language query to an LLM
+  (OpenAI, via `OpenAiClient`) to infer keywords/category/price ceiling, then runs a normal DB
+  query with those filters; if the API key is unset or the request fails for any reason, it falls
+  back to a plain keyword search and reports `ai_powered: false` so the UI can say so honestly
+  rather than pretending
+- AI support chatbot: `POST /api/support/ai-chat` (rate-limited, auth required) sends the
+  conversation plus a system prompt describing the marketplace to the same LLM client; falls back
+  to a fixed "assistant unavailable, open a ticket" message on failure, same principle as search
+- Recommendations: `GET /api/products/{slug}/recommendations` — no AI involved, just
+  frequently-bought-together (co-occurring `order_items`) falling back to same-category top
+  sellers, so it's fast, free, and doesn't depend on an API key
+- Product comparison: `GET /api/products/compare?ids=1,2,3` plus a `/compare` page with a
+  side-by-side spec table; a persisted "compare" selection follows the shopper across pages via a
+  floating bar
+- Affiliate & referral program: every user gets a `referral_code` at signup; registering with
+  `?ref=CODE` sets `referred_by_user_id`; the referrer's wallet is credited $5 the moment their
+  referred user's *first* order completes (`/account/referrals` shows the code, link, and reward
+  history)
+- Flash sales: a vendor puts a time-boxed discount on one of their own products
+  (`/api/vendor/flash-sales`); an active sale is exposed as `active_flash_sale` on the product and
+  the discounted price is what checkout actually charges, not just a display trick
+- Bundles: a vendor groups ≥2 of their own published products at a combined price
+  (`/api/vendor/bundles`); buying a bundle (`POST /api/checkout/bundle`) allocates the bundle
+  price across the included products proportionally to their base price (so vendor earnings still
+  split sensibly) and grants full download access to every product in it
+- Blog/CMS: admin-authored posts (`/api/admin/blog` CRUD) with public `/blog` and `/blog/[slug]`
+  pages, rendered as server components for SEO
+- SEO automation: a generated `sitemap.xml` (products, categories, blog posts, bundles) and
+  `robots.txt`, per-page `generateMetadata`/Open Graph tags, and JSON-LD structured data
+  (`Product`, `Article`) on product and blog detail pages
+
+This was verified with four scripted browser runs. Phase 1's run: register as a vendor, apply,
 get approved, create a product with two license tiers, upload a file, publish it, sign in as a
 different customer, buy it with wallet funds, and download the exact file that was uploaded.
 Phase 2's run extended that same loop through wishlisting a product, leaving a verified-purchase
@@ -147,6 +185,11 @@ Phase 3's run signed in as an admin and, entirely through the UI, approved a pen
 confirmed a bank-transfer order's payment, approved a vendor withdrawal, and moderated a
 customer-reported review — confirming the hidden review no longer appears on the public product
 page in a fresh unauthenticated browser context.
+Phase 4's run registered a customer through a referral link, searched (verifying the honest
+AI-unavailable fallback badge), compared two products, bought one at its flash-sale price and
+confirmed the referrer's wallet got credited $5, bought a bundle, read a blog post, published a
+new one from the admin UI, opened the AI chat widget (verifying its graceful fallback message
+too), and checked that `sitemap.xml`/`robots.txt` list the right URLs.
 
 Everything else below is scoped for later phases.
 
@@ -190,12 +233,19 @@ cover. It's broken down here by phase so it can be picked up incrementally.
 - Search: Meilisearch integration, faceted browse, typo-tolerant search — still open, deferred to
   Phase 4 alongside AI-powered search
 
-### Phase 4 — Growth & AI
-- AI-powered search (natural language, image search), recommendations,
-  product comparison
-- AI support assistant / chatbot
-- Affiliate & referral programs, email campaigns, flash sales, bundles
-- Blog/CMS, SEO automation (sitemap, OG, schema.org)
+### Phase 4 — Growth & AI ✅ done
+- AI-powered search is live via `OpenAiClient` (OpenAI) with an honest keyword-search fallback;
+  image search is still open — it needs a vision/embeddings pipeline, a bigger lift than the
+  text-only search this phase shipped
+- AI support assistant/chatbot is live with the same LLM-unavailable fallback pattern
+- Recommendations (algorithmic, no AI needed) and product comparison are live
+- Affiliate & referral programs (referral codes, wallet bonus on a referred user's first order)
+  and flash sales & bundles are live; email campaigns are still open — they need real SMTP/ESP
+  credentials to be worth building beyond a log-driver stub, so deferred rather than faked
+- Blog/CMS and SEO automation (sitemap, robots.txt, per-page OG tags, JSON-LD) are live
+- Note: this environment's network egress policy blocks `api.openai.com`, so the two AI features
+  are implemented and wired end-to-end but could only be verified via their fallback paths here —
+  set `OPENAI_API_KEY` in `backend/.env` and lift that restriction to exercise the real LLM calls
 
 ### Phase 5 — Platform maturity
 - Public REST/GraphQL API, developer portal, webhooks, API keys & rate limits

@@ -47,4 +47,14 @@ class Vendor extends Model
     {
         return $this->hasMany(WithdrawalRequest::class);
     }
+
+    public function flashSales(): HasMany
+    {
+        return $this->hasMany(FlashSale::class);
+    }
+
+    public function bundles(): HasMany
+    {
+        return $this->hasMany(Bundle::class);
+    }
 }
