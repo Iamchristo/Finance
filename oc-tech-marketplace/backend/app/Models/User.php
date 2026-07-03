@@ -102,4 +102,32 @@ class User extends Authenticatable
     {
         return $this->hasMany(ReferralReward::class, 'referrer_id');
     }
+
+    public function vendorTeamMemberships(): HasMany
+    {
+        return $this->hasMany(VendorTeamMember::class);
+    }
+
+    public function apiKeys(): HasMany
+    {
+        return $this->hasMany(ApiKey::class);
+    }
+
+    public function webhookEndpoints(): HasMany
+    {
+        return $this->hasMany(WebhookEndpoint::class);
+    }
+
+    /**
+     * The vendor account this user can act on behalf of — their own vendor
+     * profile, or a vendor they've been added to as a team member.
+     */
+    public function activeVendor(): ?Vendor
+    {
+        if ($this->relationLoaded('vendor') ? $this->vendor : $this->vendor()->exists()) {
+            return $this->vendor;
+        }
+
+        return $this->vendorTeamMemberships()->with('vendor')->first()?->vendor;
+    }
 }

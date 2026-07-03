@@ -42,7 +42,7 @@ class VendorController extends Controller
 
     public function me(Request $request)
     {
-        $vendor = $request->user()->vendor;
+        $vendor = $request->user()->activeVendor();
 
         if (! $vendor) {
             return response()->json(['message' => 'No vendor profile found.'], 404);
@@ -51,6 +51,7 @@ class VendorController extends Controller
         return response()->json([
             ...$vendor->toArray(),
             'wallet_balance' => Wallet::firstOrCreate(['user_id' => $vendor->user_id])->balance,
+            'is_owner' => $vendor->user_id === $request->user()->id,
         ]);
     }
 

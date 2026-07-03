@@ -50,7 +50,7 @@ class ReviewController extends Controller
 
     public function reply(Request $request, Review $review)
     {
-        $vendor = $request->user()->vendor;
+        $vendor = $request->user()->activeVendor();
 
         abort_unless($vendor && $review->product->vendor_id === $vendor->id, 403);
 

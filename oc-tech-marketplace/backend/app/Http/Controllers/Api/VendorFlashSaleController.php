@@ -11,7 +11,7 @@ class VendorFlashSaleController extends Controller
 {
     public function index(Request $request)
     {
-        $vendor = $request->user()->vendor;
+        $vendor = $request->user()->activeVendor();
 
         abort_unless($vendor, 404, 'No vendor profile found.');
 
@@ -22,7 +22,7 @@ class VendorFlashSaleController extends Controller
 
     public function store(Request $request)
     {
-        $vendor = $request->user()->vendor;
+        $vendor = $request->user()->activeVendor();
 
         abort_unless($vendor, 422, 'You need a vendor profile before running a flash sale.');
 
@@ -47,7 +47,7 @@ class VendorFlashSaleController extends Controller
 
     public function destroy(Request $request, FlashSale $flashSale)
     {
-        $vendor = $request->user()->vendor;
+        $vendor = $request->user()->activeVendor();
 
         abort_unless($vendor && $flashSale->vendor_id === $vendor->id, 403);
 

@@ -17,6 +17,15 @@ use Illuminate\Validation\ValidationException;
 class OrderService
 {
     /**
+     * Orders above this amount are held in escrow: the buyer's payment is
+     * captured immediately, but the vendor's earnings aren't credited until
+     * the buyer confirms receipt via releaseEscrow().
+     */
+    private const ESCROW_THRESHOLD = 200.0;
+
+    public function __construct(private readonly WebhookDispatcher $webhooks) {}
+
+    /**
      * @param  array<int, array{product_id: int, license_id: int}>  $items
      */
     public function checkout(User $user, array $items, ?string $couponCode, string $paymentMethod): Order
@@ -45,6 +54,7 @@ class OrderService
             $coupon = $this->resolveCoupon($couponCode);
             $discount = $this->calculateDiscount($coupon, $subtotal);
             $grandTotal = round($subtotal - $discount, 2);
+            $fraudReasons = $this->assessFraudRisk($user, $grandTotal);
 
             $order = Order::create([
                 'user_id' => $user->id,
@@ -55,6 +65,9 @@ class OrderService
                 'tax_total' => 0,
                 'grand_total' => $grandTotal,
                 'coupon_id' => $coupon?->id,
+                'held_in_escrow' => $grandTotal > self::ESCROW_THRESHOLD,
+                'is_flagged' => ! empty($fraudReasons),
+                'fraud_reasons' => $fraudReasons ?: null,
             ]);
 
             foreach ($lineItems as $lineItem) {
@@ -103,6 +116,7 @@ class OrderService
             $bundlePrice = (float) $bundle->bundle_price;
             $baseSum = (float) $products->sum('base_price');
             $count = $products->count();
+            $fraudReasons = $this->assessFraudRisk($user, $bundlePrice);
 
             $order = Order::create([
                 'user_id' => $user->id,
@@ -113,6 +127,9 @@ class OrderService
                 'tax_total' => 0,
                 'grand_total' => $bundlePrice,
                 'bundle_id' => $bundle->id,
+                'held_in_escrow' => $bundlePrice > self::ESCROW_THRESHOLD,
+                'is_flagged' => ! empty($fraudReasons),
+                'fraud_reasons' => $fraudReasons ?: null,
             ]);
 
             $allocated = 0;
@@ -169,7 +186,7 @@ class OrderService
             return $order;
         }
 
-        return DB::transaction(function () use ($order, $gateway, $reference) {
+        $order = DB::transaction(function () use ($order, $gateway, $reference) {
             $order->update([
                 'status' => 'completed',
                 'payment_gateway' => $gateway,
@@ -178,17 +195,11 @@ class OrderService
             ]);
 
             foreach ($order->items()->with('product')->get() as $item) {
-                $wallet = Wallet::firstOrCreate(['user_id' => $item->vendor->user_id]);
-                $wallet->increment('balance', $item->vendor_earnings);
-                $wallet->transactions()->create([
-                    'type' => 'credit',
-                    'amount' => $item->vendor_earnings,
-                    'balance_after' => $wallet->balance,
-                    'reference' => $order->order_number,
-                    'description' => "Sale of {$item->product->title}",
-                ]);
-
                 $item->product->increment('sales_count');
+            }
+
+            if (! $order->held_in_escrow) {
+                $this->creditVendorEarnings($order);
             }
 
             if ($order->coupon_id) {
@@ -199,6 +210,68 @@ class OrderService
 
             return $order->fresh(['items.product', 'items.vendor']);
         });
+
+        $this->webhooks->dispatch('order.completed', $order->user, [
+            'order_number' => $order->order_number,
+            'grand_total' => (float) $order->grand_total,
+            'held_in_escrow' => $order->held_in_escrow,
+        ]);
+
+        return $order;
+    }
+
+    /**
+     * For orders held in escrow, the buyer calls this once they've confirmed
+     * receipt to actually release the held funds into each vendor's wallet.
+     */
+    public function releaseEscrow(Order $order): Order
+    {
+        if (! $order->held_in_escrow || $order->escrow_released_at || $order->status !== 'completed') {
+            throw ValidationException::withMessages(['order' => 'This order is not awaiting an escrow release.']);
+        }
+
+        return DB::transaction(function () use ($order) {
+            $this->creditVendorEarnings($order);
+
+            $order->update(['escrow_released_at' => now()]);
+
+            return $order->fresh(['items.product', 'items.vendor']);
+        });
+    }
+
+    private function creditVendorEarnings(Order $order): void
+    {
+        foreach ($order->items()->with('product')->get() as $item) {
+            $wallet = Wallet::firstOrCreate(['user_id' => $item->vendor->user_id]);
+            $wallet->increment('balance', $item->vendor_earnings);
+            $wallet->transactions()->create([
+                'type' => 'credit',
+                'amount' => $item->vendor_earnings,
+                'balance_after' => $wallet->balance,
+                'reference' => $order->order_number,
+                'description' => "Sale of {$item->product->title}",
+            ]);
+        }
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function assessFraudRisk(User $user, float $grandTotal): array
+    {
+        $reasons = [];
+
+        if ($user->created_at && $user->created_at->diffInMinutes(now()) < 5 && $grandTotal > 50) {
+            $reasons[] = 'Account created less than 5 minutes ago placing an order over $50.';
+        }
+
+        $recentOrderCount = Order::where('user_id', $user->id)->where('created_at', '>=', now()->subHour())->count();
+
+        if ($recentOrderCount >= 5) {
+            $reasons[] = 'More than 5 orders placed by this account in the last hour.';
+        }
+
+        return $reasons;
     }
 
     private function maybeCreditReferralBonus(Order $order): void

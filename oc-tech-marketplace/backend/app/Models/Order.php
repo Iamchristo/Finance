@@ -21,6 +21,10 @@ class Order extends Model
         'payment_reference',
         'coupon_id',
         'bundle_id',
+        'held_in_escrow',
+        'escrow_released_at',
+        'is_flagged',
+        'fraud_reasons',
         'paid_at',
     ];
 
@@ -31,6 +35,10 @@ class Order extends Model
             'discount_total' => 'decimal:2',
             'tax_total' => 'decimal:2',
             'grand_total' => 'decimal:2',
+            'held_in_escrow' => 'boolean',
+            'escrow_released_at' => 'datetime',
+            'is_flagged' => 'boolean',
+            'fraud_reasons' => 'array',
             'paid_at' => 'datetime',
         ];
     }

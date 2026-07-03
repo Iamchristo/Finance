@@ -10,7 +10,7 @@ class VendorCouponController extends Controller
 {
     public function index(Request $request)
     {
-        $vendor = $request->user()->vendor;
+        $vendor = $request->user()->activeVendor();
 
         abort_unless($vendor, 404, 'No vendor profile found.');
 
@@ -19,7 +19,7 @@ class VendorCouponController extends Controller
 
     public function store(Request $request)
     {
-        $vendor = $request->user()->vendor;
+        $vendor = $request->user()->activeVendor();
 
         abort_unless($vendor, 404, 'No vendor profile found.');
 
@@ -45,7 +45,7 @@ class VendorCouponController extends Controller
 
     public function update(Request $request, Coupon $coupon)
     {
-        abort_unless($coupon->vendor_id === $request->user()->vendor?->id, 403);
+        abort_unless($coupon->vendor_id === $request->user()->activeVendor()?->id, 403);
 
         $data = $request->validate([
             'is_active' => ['sometimes', 'boolean'],
@@ -58,7 +58,7 @@ class VendorCouponController extends Controller
 
     public function destroy(Request $request, Coupon $coupon)
     {
-        abort_unless($coupon->vendor_id === $request->user()->vendor?->id, 403);
+        abort_unless($coupon->vendor_id === $request->user()->activeVendor()?->id, 403);
 
         $coupon->delete();
 

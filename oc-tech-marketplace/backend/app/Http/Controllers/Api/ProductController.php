@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product;
+use App\Services\WebhookDispatcher;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -11,6 +12,8 @@ use Illuminate\Validation\ValidationException;
 
 class ProductController extends Controller
 {
+    public function __construct(private readonly WebhookDispatcher $webhooks) {}
+
     public function index(Request $request)
     {
         $products = Product::query()
@@ -37,7 +40,7 @@ class ProductController extends Controller
 
     public function mine(Request $request)
     {
-        $vendor = $request->user()->vendor;
+        $vendor = $request->user()->activeVendor();
 
         abort_unless($vendor, 404, 'No vendor profile found.');
 
@@ -48,7 +51,7 @@ class ProductController extends Controller
 
     public function store(Request $request)
     {
-        $vendor = $request->user()->vendor;
+        $vendor = $request->user()->activeVendor();
 
         abort_unless($vendor, 422, 'You need a vendor profile before uploading products.');
 
@@ -136,11 +139,19 @@ class ProductController extends Controller
 
         $product->update(['status' => 'published', 'published_at' => now()]);
 
+        $this->webhooks->dispatch('product.published', $product->vendor->user, [
+            'product_id' => $product->id,
+            'title' => $product->title,
+            'slug' => $product->slug,
+        ]);
+
         return response()->json($product);
     }
 
     private function authorizeVendorOwnsProduct(Request $request, Product $product): void
     {
-        abort_unless($request->user()->vendor && $product->vendor_id === $request->user()->vendor->id, 403);
+        $vendor = $request->user()->activeVendor();
+
+        abort_unless($vendor && $product->vendor_id === $vendor->id, 403);
     }
 }

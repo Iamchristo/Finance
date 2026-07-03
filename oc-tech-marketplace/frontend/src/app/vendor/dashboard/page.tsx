@@ -10,6 +10,7 @@ import { VendorSettingsForm } from "@/components/vendor/VendorSettingsForm";
 import { VendorWithdrawals } from "@/components/vendor/VendorWithdrawals";
 import { VendorFlashSales } from "@/components/vendor/VendorFlashSales";
 import { VendorBundles } from "@/components/vendor/VendorBundles";
+import { VendorTeam } from "@/components/vendor/VendorTeam";
 import type { Category, Product, Vendor as VendorProfile } from "@/lib/types";
 
 type LicenseDraft = { type: string; name: string; price: string; download_limit: string };
@@ -183,6 +184,7 @@ export default function VendorDashboardPage() {
             <VendorCoupons token={token} />
             <VendorFlashSales token={token} products={products} />
             <VendorBundles token={token} products={products} />
+            <VendorTeam token={token} isOwner={vendor.is_owner ?? true} />
             <VendorWithdrawals token={token} onChange={() => refresh(token)} />
           </>
         )}

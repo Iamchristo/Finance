@@ -57,4 +57,9 @@ class Vendor extends Model
     {
         return $this->hasMany(Bundle::class);
     }
+
+    public function teamMembers(): HasMany
+    {
+        return $this->hasMany(VendorTeamMember::class);
+    }
 }

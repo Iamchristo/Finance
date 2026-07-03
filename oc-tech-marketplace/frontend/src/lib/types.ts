@@ -7,6 +7,7 @@ export type Vendor = {
   verification_status: string;
   commission_rate: string;
   wallet_balance?: string;
+  is_owner?: boolean;
   user?: { id: number; name: string; email: string };
 };
 
@@ -160,6 +161,10 @@ export type Order = {
   payment_gateway: string | null;
   paid_at: string | null;
   created_at: string;
+  held_in_escrow?: boolean;
+  escrow_released_at?: string | null;
+  is_flagged?: boolean;
+  fraud_reasons?: string[] | null;
   items?: OrderItem[];
 };
 
@@ -262,4 +267,38 @@ export type BlogPost = {
   published_at: string | null;
   created_at: string;
   author?: { id: number; name: string } | null;
+};
+
+export type ApiKeyInfo = {
+  id: number;
+  name: string;
+  prefix: string;
+  last_used_at: string | null;
+  revoked_at: string | null;
+  created_at: string;
+};
+
+export type WebhookEvent = "order.completed" | "product.published" | "withdrawal.approved";
+
+export type WebhookEndpoint = {
+  id: number;
+  url: string;
+  secret: string;
+  events: WebhookEvent[];
+  is_active: boolean;
+  created_at: string;
+};
+
+export type WebhookDelivery = {
+  id: number;
+  event: string;
+  response_status: number | null;
+  error: string | null;
+  created_at: string;
+};
+
+export type VendorTeamMember = {
+  id: number;
+  role: "owner" | "manager" | "staff";
+  user?: { id: number; name: string; email: string };
 };

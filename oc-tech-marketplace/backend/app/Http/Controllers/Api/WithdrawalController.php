@@ -6,15 +6,18 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\Wallet;
 use App\Models\WithdrawalRequest;
+use App\Services\WebhookDispatcher;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class WithdrawalController extends Controller
 {
+    public function __construct(private readonly WebhookDispatcher $webhooks) {}
+
     public function index(Request $request)
     {
-        $vendor = $request->user()->vendor;
+        $vendor = $request->user()->activeVendor();
 
         abort_unless($vendor, 404, 'No vendor profile found.');
 
@@ -23,7 +26,7 @@ class WithdrawalController extends Controller
 
     public function store(Request $request)
     {
-        $vendor = $request->user()->vendor;
+        $vendor = $request->user()->activeVendor();
 
         abort_unless($vendor, 404, 'No vendor profile found.');
 
@@ -68,6 +71,11 @@ class WithdrawalController extends Controller
         $withdrawalRequest->update(['status' => 'approved', 'processed_at' => now()]);
 
         AuditLog::record('withdrawal.approved', $withdrawalRequest, ['amount' => $withdrawalRequest->amount]);
+
+        $this->webhooks->dispatch('withdrawal.approved', $withdrawalRequest->vendor->user, [
+            'withdrawal_id' => $withdrawalRequest->id,
+            'amount' => (float) $withdrawalRequest->amount,
+        ]);
 
         return response()->json($withdrawalRequest);
     }

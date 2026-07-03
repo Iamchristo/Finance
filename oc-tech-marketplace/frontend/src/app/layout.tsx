@@ -1,9 +1,11 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { AiChatWidget } from "@/components/AiChatWidget";
 import { CompareBar } from "@/components/CompareBar";
+import { ServiceWorkerRegistrar } from "@/components/ServiceWorkerRegistrar";
+import { LocaleController } from "@/components/LocaleController";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -30,6 +32,18 @@ export const metadata: Metadata = {
     description: "All Digital Products. One Smart Marketplace.",
     type: "website",
   },
+  manifest: "/manifest.json",
+  icons: {
+    icon: [
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: "/icon-192.png",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#2563eb",
 };
 
 export default function RootLayout({
@@ -48,6 +62,8 @@ export default function RootLayout({
         <SiteFooter />
         <AiChatWidget />
         <CompareBar />
+        <ServiceWorkerRegistrar />
+        <LocaleController />
       </body>
     </html>
   );

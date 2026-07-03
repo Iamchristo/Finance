@@ -2,7 +2,7 @@
 
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, ApiError } from "@/lib/api";
 import { useRequireAuth } from "@/lib/useRequireAuth";
 import type { Order } from "@/lib/types";
 
@@ -10,6 +10,8 @@ export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { token, ready } = useRequireAuth();
   const [order, setOrder] = useState<Order | null | undefined>(undefined);
+  const [releasing, setReleasing] = useState(false);
+  const [releaseError, setReleaseError] = useState<string | null>(null);
 
   useEffect(() => {
     if (ready && token) {
@@ -18,6 +20,20 @@ export default function OrderDetailPage() {
         .catch(() => setOrder(null));
     }
   }, [ready, token, id]);
+
+  async function releaseEscrow() {
+    if (!token) return;
+    setReleasing(true);
+    setReleaseError(null);
+    try {
+      const updated = await apiFetch<Order>(`/orders/${id}/release-escrow`, { method: "POST", token });
+      setOrder(updated);
+    } catch (err) {
+      setReleaseError(err instanceof ApiError ? err.message : "Unable to release payment.");
+    } finally {
+      setReleasing(false);
+    }
+  }
 
   if (!ready || order === undefined) {
     return (
@@ -61,6 +77,31 @@ export default function OrderDetailPage() {
             <span>Date: {new Date(order.created_at).toLocaleString()}</span>
             <span>Payment: {order.payment_gateway ?? "—"}</span>
           </div>
+
+          {order.held_in_escrow && (
+            <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm dark:border-amber-900 dark:bg-amber-950/30">
+              {order.escrow_released_at ? (
+                <p className="text-emerald-700 dark:text-emerald-400">
+                  Payment released to the vendor on {new Date(order.escrow_released_at).toLocaleString()}.
+                </p>
+              ) : (
+                <>
+                  <p className="text-amber-800 dark:text-amber-400">
+                    This order is over $200, so payment is held in escrow until you confirm receipt.
+                    The vendor won&apos;t be paid until you release it.
+                  </p>
+                  <button
+                    onClick={releaseEscrow}
+                    disabled={releasing}
+                    className="brand-gradient mt-3 rounded-lg px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                  >
+                    {releasing ? "Releasing..." : "Confirm Receipt & Release Payment"}
+                  </button>
+                  {releaseError && <p className="mt-2 text-xs text-red-500">{releaseError}</p>}
+                </>
+              )}
+            </div>
+          )}
 
           <div className="mt-6 flex flex-col gap-3">
             {order.items?.map((item) => (

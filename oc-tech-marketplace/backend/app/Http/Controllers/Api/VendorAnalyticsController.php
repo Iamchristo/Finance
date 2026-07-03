@@ -11,7 +11,7 @@ class VendorAnalyticsController extends Controller
 {
     public function index(Request $request)
     {
-        $vendor = $request->user()->vendor;
+        $vendor = $request->user()->activeVendor();
 
         abort_unless($vendor, 404, 'No vendor profile found.');
 

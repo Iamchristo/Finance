@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { FeaturedProducts } from "@/components/FeaturedProducts";
 import { HeroSearch } from "@/components/HeroSearch";
+import { HeroTranslated } from "@/components/HeroTranslated";
 
 const categories = [
   "Websites",
@@ -32,19 +33,7 @@ export default function Home() {
         </div>
 
         <div className="mx-auto flex max-w-4xl flex-col items-center text-center">
-          <span className="glass rounded-full px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-foreground/70">
-            We Bring Your Ideas To Life
-          </span>
-          <h1 className="mt-6 text-4xl font-bold tracking-tight sm:text-6xl">
-            All Digital Products.
-            <br />
-            <span className="brand-gradient-text">One Smart Marketplace.</span>
-          </h1>
-          <p className="mt-6 max-w-2xl text-lg text-foreground/60">
-            Buy, sell, and manage websites, templates, UI kits, AI agents, source
-            code, and more &mdash; built for creators, developers, designers,
-            and businesses worldwide.
-          </p>
+          <HeroTranslated />
 
           <HeroSearch />
 

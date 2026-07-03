@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useAuthHydrated, useAuthStore } from "@/store/auth";
 import { useCartStore } from "@/store/cart";
+import { useTranslation } from "@/lib/i18n";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 const ADMIN_ROLES = ["administrator", "super_administrator"];
 
@@ -10,6 +12,7 @@ export function SiteHeader() {
   const mounted = useAuthHydrated();
   const { user, logout } = useAuthStore();
   const cartCount = useCartStore((s) => s.items.length);
+  const { t } = useTranslation();
 
   return (
     <header className="sticky top-0 z-50 border-b border-black/5 bg-background/80 backdrop-blur-md dark:border-white/10">
@@ -19,19 +22,20 @@ export function SiteHeader() {
         </Link>
         <nav className="hidden items-center gap-8 text-sm font-medium text-foreground/70 md:flex">
           <Link href="/products" className="hover:text-foreground">
-            Products
+            {t("nav.products")}
           </Link>
           <Link href="/bundles" className="hover:text-foreground">
-            Bundles
+            {t("nav.bundles")}
           </Link>
           <Link href="/blog" className="hover:text-foreground">
-            Blog
+            {t("nav.blog")}
           </Link>
           <Link href="/vendor/apply" className="hover:text-foreground">
-            Become a Vendor
+            {t("nav.becomeVendor")}
           </Link>
         </nav>
         <div className="flex items-center gap-3">
+          <LanguageSwitcher />
           <Link href="/cart" className="relative text-sm font-medium text-foreground/70 hover:text-foreground">
             Cart
             {mounted && cartCount > 0 && (

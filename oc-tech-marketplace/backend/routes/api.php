@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\AdminOrderController;
 use App\Http\Controllers\Api\AdminReviewController;
 use App\Http\Controllers\Api\AiSearchController;
 use App\Http\Controllers\Api\AiSupportController;
+use App\Http\Controllers\Api\ApiKeyController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BlogController;
 use App\Http\Controllers\Api\BundleController;
@@ -21,12 +22,15 @@ use App\Http\Controllers\Api\ProductRecommendationController;
 use App\Http\Controllers\Api\ReferralController;
 use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\Api\SupportTicketController;
+use App\Http\Controllers\Api\V1\PublicApiController;
 use App\Http\Controllers\Api\VendorAnalyticsController;
 use App\Http\Controllers\Api\VendorBundleController;
 use App\Http\Controllers\Api\VendorController;
 use App\Http\Controllers\Api\VendorCouponController;
 use App\Http\Controllers\Api\VendorFlashSaleController;
+use App\Http\Controllers\Api\VendorTeamController;
 use App\Http\Controllers\Api\WalletController;
+use App\Http\Controllers\Api\WebhookEndpointController;
 use App\Http\Controllers\Api\WishlistController;
 use App\Http\Controllers\Api\WithdrawalController;
 use Illuminate\Http\Request;
@@ -52,6 +56,13 @@ Route::get('/blog/{blogPost:slug}', [BlogController::class, 'show']);
 Route::get('/downloads/file/{orderItem}', [DownloadController::class, 'file'])
     ->middleware('signed')
     ->name('downloads.file');
+
+Route::middleware(['auth.apikey', 'throttle:api-key'])->prefix('v1')->group(function () {
+    Route::get('/products', [PublicApiController::class, 'products']);
+    Route::get('/products/{product}', [PublicApiController::class, 'product']);
+    Route::get('/categories', [PublicApiController::class, 'categories']);
+    Route::post('/orders', [PublicApiController::class, 'createOrder']);
+});
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
@@ -79,6 +90,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/vendor/bundles', [VendorBundleController::class, 'index']);
     Route::post('/vendor/bundles', [VendorBundleController::class, 'store']);
     Route::delete('/vendor/bundles/{bundle}', [VendorBundleController::class, 'destroy']);
+    Route::get('/vendor/team', [VendorTeamController::class, 'index']);
+    Route::post('/vendor/team', [VendorTeamController::class, 'store']);
+    Route::delete('/vendor/team/{teamMemberId}', [VendorTeamController::class, 'destroy']);
     Route::post('/reviews/{review}/reply', [ReviewController::class, 'reply']);
     Route::post('/reviews/{review}/report', [ReviewController::class, 'report']);
 
@@ -89,6 +103,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/checkout/bundle', [CheckoutController::class, 'storeBundle']);
     Route::get('/orders', [OrderController::class, 'index']);
     Route::get('/orders/{order}', [OrderController::class, 'show']);
+    Route::post('/orders/{order}/release-escrow', [OrderController::class, 'releaseEscrow']);
+
+    Route::get('/developer/api-keys', [ApiKeyController::class, 'index']);
+    Route::post('/developer/api-keys', [ApiKeyController::class, 'store']);
+    Route::delete('/developer/api-keys/{apiKey}', [ApiKeyController::class, 'destroy']);
+    Route::get('/developer/webhooks', [WebhookEndpointController::class, 'index']);
+    Route::post('/developer/webhooks', [WebhookEndpointController::class, 'store']);
+    Route::delete('/developer/webhooks/{webhookEndpoint}', [WebhookEndpointController::class, 'destroy']);
+    Route::get('/developer/webhooks/{webhookEndpoint}/deliveries', [WebhookEndpointController::class, 'deliveries']);
 
     Route::get('/downloads', [DownloadController::class, 'index']);
     Route::post('/downloads/{product}/request', [DownloadController::class, 'requestLink']);

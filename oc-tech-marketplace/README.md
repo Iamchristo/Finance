@@ -13,17 +13,21 @@ fintech simulation app at the repo root.
 
 ## Status
 
-**Phases 0–4 are done** (scaffold, core commerce loop, customer & vendor
-dashboards, admin & trust/safety, growth & AI). A customer can register,
-browse, wishlist, buy with wallet or bank-transfer, download, review, and
-raise a support ticket — plus search in natural language, compare products,
-see recommendations, buy bundles and flash-sale deals, refer friends for a
-wallet bonus, and chat with an AI support assistant. A vendor can apply, get
-approved, publish products, edit store settings, run coupons/flash
-sales/bundles, watch live sales analytics, and request a payout. An admin has
-a dashboard for platform-wide analytics, vendor approvals, order payment
-confirmation, withdrawal approvals, review moderation, and a blog CMS. See
-[Roadmap](#roadmap) for what's next.
+**Phases 0–5 are done** (scaffold, core commerce loop, customer & vendor
+dashboards, admin & trust/safety, growth & AI, platform maturity). A customer
+can register, browse, wishlist, buy with wallet or bank-transfer, download,
+review, and raise a support ticket — plus search in natural language, compare
+products, see recommendations, buy bundles and flash-sale deals, refer
+friends for a wallet bonus, chat with an AI support assistant, and switch the
+whole storefront into Arabic (RTL). A vendor can apply, get approved, publish
+products, edit store settings, run coupons/flash sales/bundles, add team
+members to their store, watch live sales analytics, and request a payout. Any
+user can generate API keys and register webhooks to build against a public
+v1 REST API. An admin has a dashboard for platform-wide analytics, vendor
+approvals, order payment confirmation (including a $200+ escrow hold/release
+flow), withdrawal approvals, review moderation, fraud-flag review, and a blog
+CMS. The site is installable as a PWA. See [Roadmap](#roadmap) for what's
+next.
 
 ## Stack
 
@@ -174,7 +178,46 @@ Frontend: http://localhost:3000
   `robots.txt`, per-page `generateMetadata`/Open Graph tags, and JSON-LD structured data
   (`Product`, `Article`) on product and blog detail pages
 
-This was verified with four scripted browser runs. Phase 1's run: register as a vendor, apply,
+**Platform maturity (`backend/`, `frontend/`)**
+- Public v1 API: `X-API-Key`-authenticated `GET /api/v1/products`, `GET /api/v1/products/{id}`,
+  `GET /api/v1/categories`, `POST /api/v1/orders`, throttled 60 req/min per key (its own named
+  rate limiter, not the IP-based default — see the bug note below); `/developer` lets any user
+  generate/revoke keys (the plaintext key is shown exactly once, only its SHA-256 hash is stored)
+- Webhooks: `/developer` also manages webhook endpoints subscribed to `order.completed`,
+  `product.published`, or `withdrawal.approved`; each delivery is an HMAC-SHA256-signed POST
+  (`X-Webhook-Signature` header) with a persisted delivery log (status code or error) visible in
+  the UI — verified against a local test receiver since this sandbox can't reach arbitrary
+  external URLs
+- Vendor teams/organizations: a vendor owner invites an existing user as `manager` or `staff`
+  (`/api/vendor/team`); `User::activeVendor()` resolves either your own vendor profile or one
+  you're a team member of, and every vendor-scoped endpoint (products, coupons, flash sales,
+  bundles, analytics, withdrawals) now goes through that resolver instead of a hard-coded
+  ownership check, so a manager can actually run the store, not just view it
+- Escrow: orders over $200 are held (`held_in_escrow`) — the buyer's payment is captured but the
+  vendor isn't paid until the buyer confirms receipt (`POST /api/orders/{order}/release-escrow`);
+  everything at or under $200 keeps the existing instant-release behavior unchanged
+- Fraud flagging: a couple of cheap heuristics (a brand-new account placing a >$50 order, or 5+
+  orders from one account within an hour) mark an order `is_flagged` with `fraud_reasons` at
+  checkout time without blocking it; admins can filter to `/admin/orders?flagged=1`
+- Installable PWA: `manifest.json` + a service worker caching the app shell for offline/repeat
+  visits — scoped to same-origin static assets only, so it never serves stale data for API calls
+  (see the bug note below)
+- Language switcher with RTL: an EN/AR toggle in the header flips `<html dir>` and translates the
+  nav/hero/footer via a small dictionary (`useTranslation`); this is real, working i18n
+  scaffolding for the highest-traffic surfaces, not full page-by-page translation coverage yet
+
+Two real bugs were found and fixed while building and testing this phase, not just worked around:
+1. Laravel's bare `throttle:N,M` middleware keys its bucket by IP alone (no route in the
+   signature), so `/auth/register`, `/auth/login`, and `/support/ai-chat` were silently sharing
+   one rate-limit counter per IP — fixed in Phase 4 by giving each route its own throttle prefix,
+   and the same prefix pattern was extended to the new `/api/v1/*` per-key limiter here.
+2. The Phase 5 service worker's cache-first fetch handler was intercepting *all* GET requests,
+   including cross-origin calls to the Laravel API — so after any POST/PATCH/DELETE, the very next
+   GET silently returned a stale cached response instead of fresh data (caught because a
+   newly-created webhook wasn't showing up in its own list). Fixed by scoping the service worker
+   to same-origin requests only; API calls now always hit the network directly.
+
+This was verified with five scripted browser runs. Phase 1's run: register as a vendor, apply,
 get approved, create a product with two license tiers, upload a file, publish it, sign in as a
 different customer, buy it with wallet funds, and download the exact file that was uploaded.
 Phase 2's run extended that same loop through wishlisting a product, leaving a verified-purchase
@@ -190,6 +233,13 @@ AI-unavailable fallback badge), compared two products, bought one at its flash-s
 confirmed the referrer's wallet got credited $5, bought a bundle, read a blog post, published a
 new one from the admin UI, opened the AI chat widget (verifying its graceful fallback message
 too), and checked that `sitemap.xml`/`robots.txt` list the right URLs.
+Phase 5's run generated an API key and a webhook in the developer portal, published a product via
+the API to trigger the webhook and confirmed delivery against a local test receiver, invited a
+team member who could then manage the vendor's products, bought a $300 product and watched it sit
+in escrow until confirming receipt released the vendor's payout, confirmed a fresh account's
+purchase over $50 showed up in the admin's flagged-orders filter, verified `manifest.json`/`sw.js`
+are served correctly, and switched the storefront to Arabic to confirm the layout actually
+mirrors to RTL.
 
 Everything else below is scoped for later phases.
 
@@ -247,11 +297,19 @@ cover. It's broken down here by phase so it can be picked up incrementally.
   are implemented and wired end-to-end but could only be verified via their fallback paths here —
   set `OPENAI_API_KEY` in `backend/.env` and lift that restriction to exercise the real LLM calls
 
-### Phase 5 — Platform maturity
-- Public REST/GraphQL API, developer portal, webhooks, API keys & rate limits
-- Mobile apps (iOS/Android) and installable PWA
-- Multi-language & RTL support
-- Enterprise features: teams/organizations, escrow, advanced fraud detection
+### Phase 5 — Platform maturity ✅ done
+- Public REST API (`/api/v1/*`), developer portal, API keys, and webhooks are live; a GraphQL
+  API is still open — REST covers the same use cases and a second query layer isn't worth the
+  added surface area until there's an actual consumer asking for it
+- Installable PWA (manifest + service worker) is live; native iOS/Android apps are still open —
+  they need app store accounts, code signing, and a build pipeline this sandbox can't run, so
+  deferred rather than faked with an unsigned/unshippable build
+- Multi-language & RTL support: a real EN/AR toggle with working RTL layout mirroring is live for
+  the nav/hero/footer; full page-by-page translation coverage across the whole site is still open
+- Enterprise features: vendor teams/organizations (invite managers/staff to run a store) and an
+  escrow hold/release flow for high-value orders are live; advanced fraud detection is a
+  deliberately simple rule-based flag (new-account velocity, order-count velocity) rather than a
+  real ML/device-risk model, which would need a fraud-data vendor to be worth building
 
 ### Reference: full category & feature catalog
 

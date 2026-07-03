@@ -32,4 +32,13 @@ class OrderController extends Controller
 
         return response()->json($confirmed);
     }
+
+    public function releaseEscrow(Request $request, Order $order, OrderService $orders)
+    {
+        abort_unless($order->user_id === $request->user()->id, 403);
+
+        $released = $orders->releaseEscrow($order);
+
+        return response()->json($released);
+    }
 }
