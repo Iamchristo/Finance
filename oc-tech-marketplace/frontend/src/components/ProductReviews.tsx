@@ -19,8 +19,19 @@ export function ProductReviews({
   const [comment, setComment] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [reportingId, setReportingId] = useState<number | null>(null);
+  const [reportReason, setReportReason] = useState("");
+  const [reportedIds, setReportedIds] = useState<number[]>([]);
 
   const alreadyReviewed = user ? reviews.some((r) => r.user_id === user.id) : false;
+
+  async function submitReport(reviewId: number) {
+    if (!token || !reportReason.trim()) return;
+    await apiFetch(`/reviews/${reviewId}/report`, { method: "POST", token, body: { reason: reportReason } });
+    setReportedIds((prev) => [...prev, reviewId]);
+    setReportingId(null);
+    setReportReason("");
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -62,6 +73,39 @@ export function ProductReviews({
               <div className="mt-3 rounded-xl bg-black/5 p-3 text-sm dark:bg-white/5">
                 <span className="font-semibold">Vendor reply: </span>
                 {review.vendor_reply}
+              </div>
+            )}
+
+            {token && (
+              <div className="mt-3">
+                {reportedIds.includes(review.id) ? (
+                  <span className="text-xs text-foreground/40">Reported — thanks for letting us know.</span>
+                ) : reportingId === review.id ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <input
+                      value={reportReason}
+                      onChange={(e) => setReportReason(e.target.value)}
+                      placeholder="Why are you reporting this review?"
+                      className="min-w-[220px] flex-1 rounded-lg border border-black/10 bg-transparent px-2 py-1 text-xs outline-none dark:border-white/10"
+                    />
+                    <button
+                      onClick={() => submitReport(review.id)}
+                      className="text-xs font-semibold text-red-500"
+                    >
+                      Submit
+                    </button>
+                    <button onClick={() => setReportingId(null)} className="text-xs text-foreground/50">
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setReportingId(review.id)}
+                    className="text-xs text-foreground/40 hover:text-red-500"
+                  >
+                    Report
+                  </button>
+                )}
               </div>
             )}
           </div>

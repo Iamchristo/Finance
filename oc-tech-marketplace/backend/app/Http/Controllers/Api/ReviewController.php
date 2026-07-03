@@ -62,4 +62,18 @@ class ReviewController extends Controller
 
         return response()->json($review);
     }
+
+    public function report(Request $request, Review $review)
+    {
+        $data = $request->validate([
+            'reason' => ['required', 'string', 'max:500'],
+        ]);
+
+        $review->update([
+            'report_reason' => $data['reason'],
+            'reported_at' => now(),
+        ]);
+
+        return response()->json(['message' => 'Thanks — our team will take a look.']);
+    }
 }

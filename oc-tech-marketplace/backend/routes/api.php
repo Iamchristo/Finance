@@ -1,5 +1,9 @@
 <?php
 
+use App\Http\Controllers\Api\AdminAnalyticsController;
+use App\Http\Controllers\Api\AdminAuditLogController;
+use App\Http\Controllers\Api\AdminOrderController;
+use App\Http\Controllers\Api\AdminReviewController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\CheckoutController;
@@ -18,8 +22,8 @@ use App\Http\Controllers\Api\WithdrawalController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::post('/auth/register', [AuthController::class, 'register']);
-Route::post('/auth/login', [AuthController::class, 'login']);
+Route::post('/auth/register', [AuthController::class, 'register'])->middleware('throttle:10,1');
+Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/{product:slug}', [ProductController::class, 'show']);
@@ -51,6 +55,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/vendor/withdrawals', [WithdrawalController::class, 'index']);
     Route::post('/vendor/withdrawals', [WithdrawalController::class, 'store']);
     Route::post('/reviews/{review}/reply', [ReviewController::class, 'reply']);
+    Route::post('/reviews/{review}/report', [ReviewController::class, 'report']);
 
     Route::get('/wallet', [WalletController::class, 'show']);
     Route::post('/wallet/topup', [WalletController::class, 'topup']);
@@ -75,11 +80,22 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/support/tickets/{supportTicket}/close', [SupportTicketController::class, 'close']);
 
     Route::middleware('role:administrator,super_administrator')->prefix('admin')->group(function () {
+        Route::get('/analytics', [AdminAnalyticsController::class, 'index']);
+        Route::get('/audit-logs', [AdminAuditLogController::class, 'index']);
+
         Route::get('/vendors', [VendorController::class, 'index']);
         Route::post('/vendors/{vendor}/approve', [VendorController::class, 'approve']);
+        Route::post('/vendors/{vendor}/reject', [VendorController::class, 'reject']);
+
+        Route::get('/orders', [AdminOrderController::class, 'index']);
         Route::post('/orders/{order}/confirm-payment', [OrderController::class, 'confirmPayment']);
+
         Route::get('/withdrawals', [WithdrawalController::class, 'adminIndex']);
         Route::post('/withdrawals/{withdrawalRequest}/approve', [WithdrawalController::class, 'approve']);
         Route::post('/withdrawals/{withdrawalRequest}/reject', [WithdrawalController::class, 'reject']);
+
+        Route::get('/reviews/reported', [AdminReviewController::class, 'index']);
+        Route::post('/reviews/{review}/dismiss-report', [AdminReviewController::class, 'dismiss']);
+        Route::post('/reviews/{review}/hide', [AdminReviewController::class, 'hide']);
     });
 });

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useAuthHydrated, useAuthStore } from "@/store/auth";
 import { useCartStore } from "@/store/cart";
 
+const ADMIN_ROLES = ["administrator", "super_administrator"];
+
 export function SiteHeader() {
   const mounted = useAuthHydrated();
   const { user, logout } = useAuthStore();
@@ -34,6 +36,11 @@ export function SiteHeader() {
           </Link>
           {mounted && user ? (
             <>
+              {ADMIN_ROLES.includes(user.role) && (
+                <Link href="/admin" className="hidden text-sm font-medium text-foreground/70 hover:text-foreground sm:block">
+                  Admin
+                </Link>
+              )}
               <Link
                 href={user.role === "vendor" ? "/vendor/dashboard" : "/account"}
                 className="hidden text-sm font-medium text-foreground/70 hover:text-foreground sm:block"

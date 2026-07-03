@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
 use App\Models\Wallet;
 use App\Models\WithdrawalRequest;
 use Illuminate\Http\Request;
@@ -52,10 +53,13 @@ class WithdrawalController extends Controller
         }), 201);
     }
 
-    public function adminIndex()
+    public function adminIndex(Request $request)
     {
         return response()->json(
-            WithdrawalRequest::with('vendor.user:id,name,email')->latest()->get()
+            WithdrawalRequest::with('vendor.user:id,name,email')
+                ->when($request->query('status'), fn ($q, $status) => $q->where('status', $status))
+                ->latest()
+                ->get()
         );
     }
 
@@ -63,12 +67,14 @@ class WithdrawalController extends Controller
     {
         $withdrawalRequest->update(['status' => 'approved', 'processed_at' => now()]);
 
+        AuditLog::record('withdrawal.approved', $withdrawalRequest, ['amount' => $withdrawalRequest->amount]);
+
         return response()->json($withdrawalRequest);
     }
 
     public function reject(Request $request, WithdrawalRequest $withdrawalRequest)
     {
-        return response()->json(DB::transaction(function () use ($request, $withdrawalRequest) {
+        $result = DB::transaction(function () use ($request, $withdrawalRequest) {
             $wallet = Wallet::firstOrCreate(['user_id' => $withdrawalRequest->vendor->user_id]);
             $wallet->increment('balance', $withdrawalRequest->amount);
             $wallet->transactions()->create([
@@ -85,6 +91,10 @@ class WithdrawalController extends Controller
             ]);
 
             return $withdrawalRequest;
-        }));
+        });
+
+        AuditLog::record('withdrawal.rejected', $withdrawalRequest, ['amount' => $withdrawalRequest->amount]);
+
+        return response()->json($result);
     }
 }

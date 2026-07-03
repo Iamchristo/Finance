@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -16,12 +17,16 @@ class Review extends Model
         'is_verified_purchase',
         'vendor_reply',
         'helpful_votes',
+        'status',
+        'report_reason',
+        'reported_at',
     ];
 
     protected function casts(): array
     {
         return [
             'is_verified_purchase' => 'boolean',
+            'reported_at' => 'datetime',
         ];
     }
 
@@ -38,5 +43,15 @@ class Review extends Model
     public function orderItem(): BelongsTo
     {
         return $this->belongsTo(OrderItem::class);
+    }
+
+    public function scopeVisible(Builder $query): Builder
+    {
+        return $query->where('status', 'visible');
+    }
+
+    public function scopeReported(Builder $query): Builder
+    {
+        return $query->whereNotNull('reported_at')->where('status', '!=', 'hidden');
     }
 }

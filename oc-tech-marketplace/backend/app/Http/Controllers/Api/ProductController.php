@@ -29,7 +29,8 @@ class ProductController extends Controller
 
     public function show(Product $product)
     {
-        $product->load(['vendor', 'category', 'licenses', 'reviews.user']);
+        $product->load(['vendor', 'category', 'licenses']);
+        $product->setRelation('reviews', $product->reviews()->visible()->with('user')->get());
 
         return response()->json($product);
     }

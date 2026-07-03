@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
 use App\Models\Vendor;
 use App\Models\Wallet;
 use Illuminate\Http\Request;
@@ -78,11 +79,30 @@ class VendorController extends Controller
             'verified_at' => now(),
         ]);
 
+        AuditLog::record('vendor.approved', $vendor, ['store_name' => $vendor->store_name]);
+
+        return response()->json($vendor);
+    }
+
+    public function reject(Request $request, Vendor $vendor)
+    {
+        $data = $request->validate(['reason' => ['nullable', 'string', 'max:1000']]);
+
+        $vendor->update(['verification_status' => 'rejected']);
+
+        AuditLog::record('vendor.rejected', $vendor, ['store_name' => $vendor->store_name, ...$data]);
+
         return response()->json($vendor);
     }
 
     public function index(Request $request)
     {
-        return response()->json(Vendor::query()->with('user:id,name,email')->paginate(20));
+        return response()->json(
+            Vendor::query()
+                ->with('user:id,name,email')
+                ->when($request->query('status'), fn ($q, $status) => $q->where('verification_status', $status))
+                ->latest()
+                ->paginate(20)
+        );
     }
 }

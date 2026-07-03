@@ -13,12 +13,14 @@ fintech simulation app at the repo root.
 
 ## Status
 
-**Phases 0–2 are done** (scaffold, core commerce loop, customer & vendor
-dashboards). A customer can register, browse, wishlist, buy with wallet or
-bank-transfer, download, review, and raise a support ticket. A vendor can
-apply, get approved, publish products, edit store settings, run coupons, watch
-live sales analytics, and request a payout. See [Roadmap](#roadmap) for what's
-next.
+**Phases 0–3 are done** (scaffold, core commerce loop, customer & vendor
+dashboards, admin & trust/safety). A customer can register, browse, wishlist,
+buy with wallet or bank-transfer, download, review, and raise a support
+ticket. A vendor can apply, get approved, publish products, edit store
+settings, run coupons, watch live sales analytics, and request a payout. An
+admin has a dashboard for platform-wide analytics, vendor approvals, order
+payment confirmation, withdrawal approvals, and review moderation. See
+[Roadmap](#roadmap) for what's next.
 
 ## Stack
 
@@ -116,13 +118,35 @@ Frontend: http://localhost:3000
   analytics with top products, coupon management, withdrawal requests, plus the existing
   product creation/upload/publish flow)
 
-This was verified with two scripted browser runs. Phase 1's run: register as a vendor, apply,
+**Admin (`/admin`, `frontend/`)**
+- Role-gated admin layout (`administrator`/`super_administrator`) with an overview showing
+  platform-wide analytics: GMV, platform revenue (commission), order/user/vendor/product counts,
+  pending-approval counts, and a top-vendors-by-earnings leaderboard (`GET /api/admin/analytics`)
+- Vendor approvals: `/admin/vendors` lists vendors with a status filter, approve/reject actions
+  (`POST /api/admin/vendors/{vendor}/approve|reject`)
+- Order management: `/admin/orders` lists all orders with a status filter and a
+  "Confirm Payment" action for pending bank-transfer orders (`POST /api/admin/orders/{order}/confirm-payment`)
+- Withdrawal approvals: `/admin/withdrawals` with approve/reject actions
+- Review moderation: customers can report a review from the product page
+  (`POST /api/reviews/{review}/report`); `/admin/reviews` lists reported reviews with
+  dismiss-report / hide actions — a hidden review disappears from the public product page and
+  the product's `average_rating` is recomputed
+- Audit log: every admin approve/reject/hide/confirm action is recorded (actor, action, subject,
+  metadata) via an `AuditLog` model (`GET /api/admin/audit-logs`; no dedicated UI screen yet)
+- Auth rate limiting: `POST /api/auth/register` (10/min) and `POST /api/auth/login` (5/min) are
+  throttled per IP
+
+This was verified with three scripted browser runs. Phase 1's run: register as a vendor, apply,
 get approved, create a product with two license tiers, upload a file, publish it, sign in as a
 different customer, buy it with wallet funds, and download the exact file that was uploaded.
 Phase 2's run extended that same loop through wishlisting a product, leaving a verified-purchase
 review, checking the order invoice, opening a support ticket and getting a staff reply, and on
 the vendor side: editing store settings, creating a coupon, and requesting (then having an admin
 approve) a withdrawal — confirming the vendor's analytics panel reflects each change live.
+Phase 3's run signed in as an admin and, entirely through the UI, approved a pending vendor,
+confirmed a bank-transfer order's payment, approved a vendor withdrawal, and moderated a
+customer-reported review — confirming the hidden review no longer appears on the public product
+page in a fresh unauthenticated browser context.
 
 Everything else below is scoped for later phases.
 
@@ -153,14 +177,18 @@ cover. It's broken down here by phase so it can be picked up incrementally.
   email/push/SMS notifications are not — those need real-time infra (websockets/Reverb) and a
   mail/push provider, deferred rather than stubbed
 
-### Phase 3 — Admin & trust/safety
-- Admin dashboard UI (vendor approval, withdrawal approval, and order payment confirmation
-  currently only exist as role-gated API endpoints, exercised via curl/CLI in this repo's tests —
-  there's no screen for an admin to do this yet)
-- Admin analytics dashboard (revenue, traffic, conversion, top products/vendors)
-- Review abuse reporting (verified-purchase badges and vendor replies shipped in Phase 2)
-- Security: 2FA, passkeys, rate limiting, audit logs, fraud detection basics
-- Search: Meilisearch integration, faceted browse, typo-tolerant search
+### Phase 3 — Admin & trust/safety ✅ done
+- Admin dashboard UI: platform overview, vendor approvals, order payment confirmation, and
+  withdrawal approvals, all driven through real screens (not just curl/CLI)
+- Admin analytics dashboard: GMV, platform revenue, order/user/vendor/product counts, top vendors
+  by earnings (traffic/conversion funnels are still open — they need real pageview tracking)
+- Review abuse reporting: customers can report a review, admins can dismiss or hide it, with the
+  product's average rating recomputed on hide
+- Security: rate limiting on register/login and an admin-action audit log are live; 2FA, passkeys,
+  and automated fraud detection are still open — deferred rather than half-built, since they need
+  a real second factor / device-risk provider to be worth anything
+- Search: Meilisearch integration, faceted browse, typo-tolerant search — still open, deferred to
+  Phase 4 alongside AI-powered search
 
 ### Phase 4 — Growth & AI
 - AI-powered search (natural language, image search), recommendations,

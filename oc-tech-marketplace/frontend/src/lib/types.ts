@@ -7,6 +7,7 @@ export type Vendor = {
   verification_status: string;
   commission_rate: string;
   wallet_balance?: string;
+  user?: { id: number; name: string; email: string };
 };
 
 export type Category = {
@@ -43,8 +44,12 @@ export type Review = {
   is_verified_purchase: boolean;
   vendor_reply: string | null;
   helpful_votes: number;
+  status?: string;
+  report_reason?: string | null;
+  reported_at?: string | null;
   created_at: string;
   user?: { id: number; name: string };
+  product?: { id: number; title: string };
 };
 
 export type Product = {
@@ -168,4 +173,27 @@ export type WalletTransaction = {
   balance_after: string;
   description: string | null;
   created_at: string;
+};
+
+export type PlatformAnalytics = {
+  total_gmv: number;
+  platform_revenue: number;
+  total_orders: number;
+  total_users: number;
+  total_vendors: number;
+  total_products: number;
+  pending_vendor_approvals: number;
+  pending_withdrawals: number;
+  pending_orders: number;
+  top_vendors: { id: number; store_name: string; total_earnings: number }[];
+};
+
+export type AuditLogEntry = {
+  id: number;
+  action: string;
+  subject_type: string | null;
+  subject_id: number | null;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+  user?: { id: number; name: string } | null;
 };
